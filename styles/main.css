@@ -4392,3 +4392,289 @@ button:not(:disabled) {
     margin: 7px 0 0;
   }
 }
+
+
+/* UI-07B — event choice presentation */
+.event-screen {
+  width: min(1040px, calc(100% - 28px));
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding-top: 24px;
+  padding-bottom: 34px;
+}
+
+.event-stage {
+  width: 100%;
+  padding: 30px;
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(103, 77, 154, 0.12), transparent 30rem),
+    linear-gradient(180deg, rgba(20, 23, 32, 0.97), rgba(10, 12, 17, 0.99));
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.32);
+}
+
+.event-stage__header {
+  max-width: 700px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.event-stage__header h1 {
+  margin: 6px 0 10px;
+  color: #f0f2f7;
+  font-size: 30px;
+}
+
+.event-stage__header p {
+  margin: 0;
+  color: #939cad;
+  font-size: 12px;
+  line-height: 1.75;
+}
+
+.event-run-state {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.event-run-state > span {
+  display: flex;
+  flex-direction: column;
+  min-width: 90px;
+  padding: 8px 12px;
+  border: 1px solid rgba(255,255,255,0.065);
+  border-radius: 10px;
+  background: rgba(255,255,255,0.022);
+}
+
+.event-run-state small {
+  color: #737d90;
+  font-size: 7px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.event-run-state strong {
+  margin-top: 3px;
+  color: #dfe4ec;
+  font-size: 11px;
+}
+
+.event-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 24px 0 14px;
+}
+
+.event-divider::before,
+.event-divider::after {
+  content: "";
+  flex: 1 1 auto;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08));
+}
+
+.event-divider::after {
+  background: linear-gradient(90deg, rgba(255,255,255,0.08), transparent);
+}
+
+.event-divider span {
+  color: #687285;
+  font-size: 8px;
+  letter-spacing: 0.13em;
+}
+
+.event-choice-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 0;
+}
+
+.event-choice-card {
+  position: relative;
+  display: grid !important;
+  grid-template-columns: 56px minmax(0,1fr);
+  grid-template-rows: auto 1fr auto;
+  gap: 8px 14px !important;
+  min-height: 190px;
+  padding: 16px !important;
+  border: 1px solid rgba(255,255,255,0.075) !important;
+  border-radius: 15px !important;
+  color: #e8ebf1 !important;
+  background:
+    radial-gradient(circle at 12% 42%, rgba(255,255,255,0.035), transparent 24%),
+    linear-gradient(180deg, rgba(34,38,48,0.86), rgba(19,22,29,0.94)) !important;
+  text-align: left !important;
+  transition:
+    transform 130ms ease,
+    border-color 130ms ease,
+    background 130ms ease,
+    box-shadow 130ms ease;
+}
+
+.event-choice-card:not(:disabled):hover {
+  transform: translateY(-4px);
+  border-color: rgba(198,167,255,0.34) !important;
+  box-shadow: 0 16px 34px rgba(0,0,0,0.22);
+}
+
+.event-choice-card__top {
+  grid-column: 1 / 3;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.event-choice-card__index {
+  color: #646f82 !important;
+  font-size: 8px !important;
+  letter-spacing: 0.08em;
+}
+
+.event-choice-card__category {
+  padding: 3px 6px;
+  border-radius: 999px;
+  color: #9099a9 !important;
+  background: rgba(255,255,255,0.04);
+  font-size: 7px !important;
+  letter-spacing: 0.04em;
+}
+
+.event-choice-card__mark {
+  display: grid !important;
+  place-items: center;
+  align-self: start;
+  width: 52px;
+  height: 52px;
+  margin: 0 !important;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 50%;
+  color: #dfe4ec !important;
+  background: rgba(255,255,255,0.045);
+  font-size: 19px !important;
+  font-weight: 800;
+}
+
+.event-choice-card__copy {
+  min-width: 0;
+}
+
+.event-choice-card__copy strong {
+  display: block;
+  color: #eef1f6;
+  font-size: 14px;
+}
+
+.event-choice-card__copy p {
+  margin: 7px 0 0;
+  color: #9aa4b4;
+  font-size: 10px;
+  line-height: 1.6;
+}
+
+.event-choice-card__action,
+.event-choice-card__locked {
+  grid-column: 1 / 3;
+  display: block !important;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 8px !important;
+  text-align: center;
+}
+
+.event-choice-card__action {
+  color: #cfc7e9 !important;
+  background: rgba(102,79,153,0.23);
+}
+
+.event-choice-card__locked {
+  color: #ad8087 !important;
+  background: rgba(105,46,56,0.18);
+}
+
+.event-choice-card--reward .event-choice-card__mark {
+  border-color: rgba(100,184,139,0.22);
+  color: #caf0d8 !important;
+  background: rgba(57,132,93,0.2);
+}
+
+.event-choice-card--reward:not(:disabled):hover {
+  border-color: rgba(100,184,139,0.42) !important;
+  background:
+    radial-gradient(circle at 12% 42%, rgba(67,157,108,0.08), transparent 24%),
+    linear-gradient(180deg, rgba(29,43,38,0.9), rgba(18,24,22,0.96)) !important;
+}
+
+.event-choice-card--risk .event-choice-card__mark {
+  border-color: rgba(207,97,111,0.22);
+  color: #f2c5cc !important;
+  background: rgba(137,52,64,0.22);
+}
+
+.event-choice-card--risk:not(:disabled):hover {
+  border-color: rgba(207,97,111,0.44) !important;
+  background:
+    radial-gradient(circle at 12% 42%, rgba(167,58,72,0.09), transparent 24%),
+    linear-gradient(180deg, rgba(45,28,33,0.9), rgba(24,18,21,0.96)) !important;
+}
+
+.event-choice-card--trade .event-choice-card__mark {
+  border-color: rgba(207,171,82,0.23);
+  color: #f2dea0 !important;
+  background: rgba(126,96,35,0.22);
+}
+
+.event-choice-card--trade:not(:disabled):hover {
+  border-color: rgba(207,171,82,0.44) !important;
+}
+
+.event-choice-card--leave .event-choice-card__mark {
+  color: #aab2c1 !important;
+}
+
+.event-choice-card:disabled {
+  opacity: 0.46;
+  filter: saturate(0.52);
+  cursor: not-allowed;
+}
+
+.event-choice-card:disabled .event-choice-card__mark {
+  border-color: rgba(255,255,255,0.06);
+  color: #777f8d !important;
+  background: rgba(255,255,255,0.025);
+}
+
+.event-footnote {
+  margin: 14px 0 0;
+  color: #697386;
+  font-size: 8px;
+  text-align: center;
+}
+
+@media (max-width: 720px) {
+  .event-screen {
+    width: min(100% - 14px, 1040px);
+    padding-top: 8px;
+  }
+
+  .event-stage {
+    padding: 22px 14px;
+  }
+
+  .event-choice-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .event-run-state {
+    overflow-x: auto;
+    justify-content: flex-start;
+  }
+
+  .event-run-state > span {
+    flex: 0 0 88px;
+  }
+}
