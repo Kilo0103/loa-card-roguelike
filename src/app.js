@@ -37,6 +37,13 @@ function openRewards() {
 
 function finishBattleAction() {
   if (app.battle.status === "victory") {
+    if (app.battle.isFinalBoss) {
+      advanceRun(app.run);
+      app.mode = "field-clear";
+      render(root, app);
+      return;
+    }
+
     openRewards();
     return;
   }
