@@ -118,8 +118,14 @@ export function getAvailableMagicBookIds(run) {
 }
 
 
+export function getAvailableImplementedMagicBookIds(run) {
+  return getAvailableMagicBookIds(run).filter(function implementedOnly(bookId) {
+    return getMagicBook(bookId).implemented;
+  });
+}
+
 export function createMagicBookRewards(run, amount = 3) {
-  const available = getAvailableMagicBookIds(run);
+  const available = getAvailableImplementedMagicBookIds(run);
   const shuffled = [...available];
 
   for (let index = shuffled.length - 1; index > 0; index -= 1) {
