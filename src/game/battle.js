@@ -3,7 +3,11 @@ import {
   getEncounterForNode,
 } from "../data/enemies.js";
 import { getCard } from "../data/cards.js";
-import { hasMagicBook } from "../data/magicBooks.js";
+import {
+  getMagicBook,
+  hasMagicBook,
+  removeMagicBook,
+} from "../data/magicBooks.js";
 import {
   discardHand,
   drawCards,
@@ -77,6 +81,84 @@ function tickStatuses(statuses) {
   }
 }
 
+function destroyRandomMagicBook(run, battle) {
+  if (!run.magicBooks || run.magicBooks.length === 0) {
+    return null;
+  }
+
+  const index = Math.floor(Math.random() * run.magicBooks.length);
+  const bookId = run.magicBooks[index];
+  const book = getMagicBook(bookId);
+  removeMagicBook(run, bookId);
+  addLog(battle, "위기 모면 — " + book.name + " 마법서 파괴");
+  return bookId;
+}
+
+function applyHpDamage(run, battle, amount) {
+  if (amount <= 0) {
+    return 0;
+  }
+
+  const previousHp = run.hp;
+
+  if (
+    amount >= previousHp &&
+    hasMagicBook(run, "crisis_evasion") &&
+    !battle.playerStatuses.crisisEvasionUsed
+  ) {
+    battle.playerStatuses.crisisEvasionUsed = true;
+    run.hp = 1;
+
+    const gained = getBlockGain(run, previousHp);
+    battle.playerBlock += gained;
+    destroyRandomMagicBook(run, battle);
+
+    addLog(
+      battle,
+      "위기 모면 — 치명 피해 생존 · HP 1 · 보호막 " + gained
+    );
+
+    return Math.max(0, previousHp - 1);
+  }
+
+  run.hp = Math.max(0, previousHp - amount);
+  return previousHp - run.hp;
+}
+
+function reflectFirstDebuff(
+  run,
+  battle,
+  sourceEnemy,
+  type,
+  duration,
+  value
+) {
+  if (
+    !sourceEnemy ||
+    !hasMagicBook(run, "thorns") ||
+    battle.playerStatuses.thornsUsed
+  ) {
+    return;
+  }
+
+  battle.playerStatuses.thornsUsed = true;
+
+  if (sourceEnemy.statuses[type]) {
+    sourceEnemy.statuses[type].duration += duration;
+  } else {
+    sourceEnemy.statuses[type] = {
+      duration,
+      value: value || 0,
+    };
+  }
+
+  addLog(
+    battle,
+    "가시 — " + sourceEnemy.name + "에게 " +
+      type + " " + duration + "턴 반사"
+  );
+}
+
 function maybeTriggerFirstAid(run, battle) {
   if (
     !hasMagicBook(run, "first_aid") ||
@@ -112,6 +194,14 @@ function addPlayerDebuff(
 
   if (battle.playerDebuffs[type]) {
     battle.playerDebuffs[type].duration += duration;
+    reflectFirstDebuff(
+      run,
+      battle,
+      sourceEnemy,
+      type,
+      duration,
+      value
+    );
     return true;
   }
 
@@ -120,6 +210,16 @@ function addPlayerDebuff(
     value: value || 0,
     sourceEnemyId: sourceEnemy ? sourceEnemy.id : null,
   };
+
+  reflectFirstDebuff(
+    run,
+    battle,
+    sourceEnemy,
+    type,
+    duration,
+    value
+  );
+
   return true;
 }
 
@@ -171,17 +271,17 @@ function damagePlayer(run, battle, enemy, amount, piercing) {
     battle.playerStatuses.counterStanceReady = true;
   }
 
-  run.hp = Math.max(0, run.hp - hpDamage);
+  const actualHpDamage = applyHpDamage(run, battle, hpDamage);
 
   const piercingText = piercing ? " [쉴드 관통]" : "";
   addLog(
     battle,
     enemy.name + " 공격 " + reducedAmount + piercingText +
-      " (HP 피해 " + hpDamage + ")"
+      " (HP 피해 " + actualHpDamage + ")"
   );
 
   if (
-    hpDamage > 0 &&
+    actualHpDamage > 0 &&
     hasMagicBook(run, "indomitable") &&
     !battle.playerStatuses.indomitableUsedThisEnemyTurn
   ) {
@@ -228,6 +328,23 @@ function addRubble(battle, enemy) {
 function resolveEnemyIntent(run, battle, enemy) {
   if (enemy.hp <= 0) {
     return;
+  }
+
+  const reflectedBleed = enemy.statuses.bleed;
+  if (reflectedBleed) {
+    const bleedDamage = Math.max(0, reflectedBleed.value || 0);
+    if (bleedDamage > 0) {
+      enemy.hp = Math.max(0, enemy.hp - bleedDamage);
+      addLog(
+        battle,
+        enemy.name + "이 반사된 출혈로 " +
+          bleedDamage + " 피해"
+      );
+
+      if (enemy.hp <= 0) {
+        return;
+      }
+    }
   }
 
   battle.playerStatuses.indomitableUsedThisEnemyTurn = false;
@@ -392,8 +509,12 @@ function resolvePlayerDebuffsAtTurnEnd(run, battle) {
     const bleedDamage = Math.ceil(
       bleed.value * getIncomingDamageMultiplier(run)
     );
-    run.hp = Math.max(0, run.hp - bleedDamage);
-    addLog(battle, "출혈로 HP " + bleedDamage + " 피해");
+    const actualBleedDamage = applyHpDamage(
+      run,
+      battle,
+      bleedDamage
+    );
+    addLog(battle, "출혈로 HP " + actualBleedDamage + " 피해");
     maybeTriggerFirstAid(run, battle);
   }
 
@@ -465,6 +586,10 @@ function startPlayerTurn(run, battle) {
   battle.playerStatuses.rapidDeploymentUsed = false;
   battle.playerStatuses.tidyUpUsed = false;
   battle.playerStatuses.combatBreathingReady = false;
+  battle.playerStatuses.adrenalineBonus =
+    battle.playerStatuses.nextAdrenalineBonus;
+  battle.playerStatuses.nextAdrenalineBonus = 0;
+  battle.playerStatuses.currentTurnCardTypes = [];
 
   if (
     hasMagicBook(run, "iron_will") &&
@@ -615,6 +740,13 @@ export function createBattle(run, mapNode) {
       retainSelectionMode: false,
       contingencyRemaining: 0,
       recyclingUsed: false,
+      adrenalineBonus: 0,
+      nextAdrenalineBonus: 0,
+      energySpentThisTurn: 0,
+      previousTurnCardTypes: [],
+      currentTurnCardTypes: [],
+      crisisEvasionUsed: false,
+      thornsUsed: false,
     },
     playerDebuffs: {},
     charge: null,
@@ -896,6 +1028,7 @@ export function playCard(run, battle, handIndex) {
     battle.energy - cost === 0;
 
   battle.energy -= cost;
+  battle.playerStatuses.energySpentThisTurn += cost;
 
   if (
     hasMagicBook(run, "mana_echo") &&
@@ -917,6 +1050,10 @@ export function playCard(run, battle, handIndex) {
 
   movePlayedCard(run, battle, cardId, card);
   battle.playerStatuses.cardsPlayedThisTurn += 1;
+
+  if (!battle.playerStatuses.currentTurnCardTypes.includes(card.type)) {
+    battle.playerStatuses.currentTurnCardTypes.push(card.type);
+  }
 
   if (wasFirstCard) {
     battle.playerStatuses.nightmareFreeCard = false;
@@ -1004,6 +1141,18 @@ export function endTurn(run, battle) {
   if (checkVictory(run, battle)) {
     return;
   }
+
+  if (hasMagicBook(run, "adrenaline")) {
+    battle.playerStatuses.nextAdrenalineBonus = Math.min(
+      3,
+      battle.playerStatuses.energySpentThisTurn
+    );
+  }
+
+  battle.playerStatuses.previousTurnCardTypes = [
+    ...battle.playerStatuses.currentTurnCardTypes,
+  ];
+  battle.playerStatuses.energySpentThisTurn = 0;
 
   if (
     hasMagicBook(run, "catch_breath") &&
