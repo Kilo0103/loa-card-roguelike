@@ -6610,3 +6610,469 @@ button:disabled {
     margin-top: 0;
   }
 }
+
+
+/* Game-screen composition pass
+   Temporary background reference: official Smilegate Lost Ark newsroom image. */
+@media (min-width: 761px) {
+  body {
+    overflow: hidden;
+  }
+
+  .battle-screen {
+    width: 100%;
+    height: 100svh;
+    margin: 0;
+    padding: 0;
+  }
+
+  .battle-shell {
+    position: relative;
+    width: 100%;
+    height: 100svh;
+    min-height: 640px;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background:
+      linear-gradient(180deg, rgba(3,5,8,.3), rgba(4,5,8,.64) 58%, rgba(5,6,9,.96) 100%),
+      linear-gradient(90deg, rgba(4,5,8,.72), transparent 28%, transparent 68%, rgba(4,5,8,.44)),
+      url("https://newsroom.smilegate.com/s3/board/%EB%A1%9C%EC%8A%A4%ED%8A%B8%EC%95%84%ED%81%AC_%EC%8B%9C%EC%A6%8C2_%ED%8C%8C%EB%B0%8D_%EC%8B%9C%EC%8A%A4%ED%85%9C.png")
+        center 58% / cover no-repeat;
+    box-shadow: none;
+    overflow: hidden;
+  }
+
+  .battle-shell::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    background:
+      radial-gradient(circle at 50% 43%, transparent 0 28%, rgba(0,0,0,.18) 64%, rgba(0,0,0,.64) 100%),
+      linear-gradient(180deg, rgba(0,0,0,.18), transparent 28%, transparent 58%, rgba(0,0,0,.7));
+    pointer-events: none;
+  }
+
+  .battle-shell > * {
+    position: relative;
+    z-index: 2;
+  }
+
+  .battle-topstrip {
+    position: absolute;
+    top: 0;
+    right: 0;
+    left: 0;
+    z-index: 50;
+    min-height: 46px;
+    padding: 8px 214px 8px 18px;
+    border: 0;
+    border-bottom: 1px solid rgba(255,255,255,.08);
+    background: linear-gradient(180deg, rgba(5,7,10,.92), rgba(5,7,10,.56), transparent);
+    backdrop-filter: blur(7px);
+  }
+
+  .battle-topstrip__encounter .eyebrow {
+    color: #d9b878;
+    font-size: 9px;
+  }
+
+  .battle-topstrip__encounter > strong {
+    color: #fff;
+    font-size: 13px;
+    text-shadow: 0 2px 8px rgba(0,0,0,.85);
+  }
+
+  .battle-turn {
+    border-color: rgba(218,184,120,.32);
+    color: #f2d6a4;
+    background: rgba(75,52,23,.35);
+  }
+
+  .battle-topstrip__meta {
+    color: #b4bac5;
+    text-shadow: 0 2px 7px rgba(0,0,0,.9);
+  }
+
+  .battle-topstrip__meta b {
+    color: #fff;
+  }
+
+  .notice-banner,
+  .battle-alert {
+    position: absolute;
+    left: 50%;
+    z-index: 70;
+    width: max-content;
+    max-width: min(680px, calc(100vw - 440px));
+    transform: translateX(-50%);
+    backdrop-filter: blur(10px);
+  }
+
+  .notice-banner {
+    top: 54px;
+  }
+
+  .setup-banner,
+  .charge-banner {
+    top: 90px;
+  }
+
+  .mobile-combat-hint {
+    display: none !important;
+  }
+
+  .battle-stage {
+    position: absolute;
+    inset: 0;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+  }
+
+  .battle-arena {
+    position: absolute;
+    inset: 0;
+    min-height: 0;
+    height: 100%;
+    margin: 0;
+    padding: 80px 34px 210px;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    overflow: hidden;
+  }
+
+  .battle-arena::before {
+    display: none;
+  }
+
+  .battle-arena__heading {
+    display: none;
+  }
+
+  .battle-combat-row {
+    display: grid;
+    grid-template-columns: minmax(210px, .56fr) minmax(0, 2.2fr);
+    align-items: center;
+    gap: 34px;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+  }
+
+  /* Player becomes a floating lower-left HUD instead of a panel card. */
+  .battle-combat-row .player-hud {
+    position: relative;
+    align-self: end;
+    width: min(290px, 100%);
+    min-height: 108px;
+    margin-bottom: 14px;
+    padding: 10px 11px;
+    border: 1px solid rgba(255,255,255,.12);
+    border-left: 3px solid rgba(199,164,104,.7);
+    border-radius: 7px;
+    background:
+      linear-gradient(90deg, rgba(5,7,10,.9), rgba(10,13,18,.72) 72%, rgba(10,13,18,.2));
+    box-shadow: 0 12px 34px rgba(0,0,0,.42);
+    backdrop-filter: blur(6px);
+  }
+
+  .battle-combat-row .player-hud__avatar {
+    border-color: rgba(223,189,121,.4);
+    color: #f0d39d;
+    background: radial-gradient(circle, rgba(124,89,42,.48), rgba(24,24,25,.8));
+  }
+
+  .battle-combat-row .player-hud__class {
+    color: #b89861;
+  }
+
+  .battle-combat-row .player-energy {
+    border-color: rgba(90,164,210,.35);
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(33,94,132,.54), rgba(12,28,40,.88));
+  }
+
+  /* Enemy units read like target HUDs floating over the scene. */
+  .battle-enemy-line {
+    align-items: center;
+    justify-content: flex-end;
+    gap: 18px;
+    overflow: visible;
+  }
+
+  .battle-enemy-line .enemy-unit {
+    flex: 0 1 220px;
+    min-width: 160px;
+    min-height: 176px;
+    padding: 50px 10px 10px;
+    border: 0;
+    border-radius: 8px;
+    background:
+      linear-gradient(180deg, rgba(7,8,11,.05), rgba(7,8,11,.48) 46%, rgba(7,8,11,.82));
+    box-shadow: none;
+    backdrop-filter: blur(1.5px);
+  }
+
+  .battle-enemy-line .enemy-unit::after {
+    content: "";
+    position: absolute;
+    inset: auto 7px 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, rgba(196,74,87,.5), transparent);
+  }
+
+  .battle-enemy-line .enemy-unit.enemy-card--selected {
+    background:
+      radial-gradient(circle at 50% 38%, rgba(176,65,73,.16), transparent 34%),
+      linear-gradient(180deg, rgba(7,8,11,.06), rgba(7,8,11,.55) 44%, rgba(7,8,11,.88));
+    filter: brightness(1.1);
+  }
+
+  .battle-enemy-line .enemy-unit.enemy-card--selected::before {
+    border: 1px solid rgba(235,112,121,.7);
+    border-radius: 8px;
+    box-shadow:
+      0 0 0 1px rgba(235,112,121,.12),
+      0 0 28px rgba(170,57,68,.22);
+  }
+
+  .battle-enemy-line .enemy-unit__portrait {
+    width: 64px;
+    height: 64px;
+    border-color: rgba(255,255,255,.24);
+    background: rgba(10,11,14,.54);
+    box-shadow: 0 8px 22px rgba(0,0,0,.4);
+  }
+
+  .battle-enemy-line .enemy-intent-orb {
+    top: 2px;
+    right: 50%;
+    min-width: 104px;
+    min-height: 40px;
+    padding: 5px 8px;
+    border-color: rgba(255,255,255,.12);
+    background: rgba(6,7,9,.82);
+    transform: translateX(50%);
+    backdrop-filter: blur(7px);
+  }
+
+  .enemy-health-row .mini-meter,
+  .enemy-stagger-row .mini-meter {
+    background: rgba(0,0,0,.66);
+  }
+
+  /* Bottom HUD floats over the battlefield. */
+  .battle-bottom-grid {
+    position: absolute;
+    right: 18px;
+    bottom: 12px;
+    left: 18px;
+    z-index: 60;
+    display: grid;
+    grid-template-columns: 280px minmax(0, 1fr) 150px;
+    align-items: end;
+    gap: 12px;
+    height: 190px;
+    margin: 0;
+    pointer-events: none;
+  }
+
+  .battle-bottom-grid > * {
+    pointer-events: auto;
+  }
+
+  .battle-side-tools {
+    gap: 5px;
+    align-self: end;
+    min-height: 0;
+  }
+
+  .battle-bottom-grid .battle-resource-row {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .battle-bottom-grid .battle-resource-row > .potion-bar,
+  .battle-bottom-grid .battle-resource-row > .bond-bar,
+  .battle-bottom-grid .battle-resource-row > .magic-book-bar {
+    min-height: 32px;
+    padding: 4px 6px;
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 5px;
+    background: rgba(5,7,10,.74);
+    box-shadow: 0 7px 18px rgba(0,0,0,.28);
+    backdrop-filter: blur(7px);
+  }
+
+  .battle-bottom-grid .battle-resource-row .label {
+    color: #b5a277;
+  }
+
+  .battle-bottom-grid .magic-book-chip {
+    border-radius: 4px;
+    background: rgba(83,66,30,.44);
+  }
+
+  .battle-bottom-grid .battle-log--compact {
+    width: 100%;
+    margin: 0;
+    border: 0;
+    border-radius: 5px;
+    background: rgba(5,7,10,.62);
+    box-shadow: none;
+    backdrop-filter: blur(6px);
+  }
+
+  /* Fan the hand like an actual card-game hand. */
+  .battle-bottom-grid .battle-hand {
+    align-self: end;
+    justify-content: center;
+    min-height: 184px;
+    height: 184px;
+    padding: 10px 42px 0;
+    overflow: visible;
+    background:
+      radial-gradient(ellipse at 50% 100%, rgba(0,0,0,.55), transparent 63%);
+  }
+
+  .battle-bottom-grid .battle-hand .battle-card {
+    flex: 0 0 146px;
+    min-height: 184px;
+    margin-left: -28px;
+    filter: drop-shadow(0 10px 12px rgba(0,0,0,.48));
+  }
+
+  .battle-bottom-grid .battle-hand .battle-card:first-child {
+    margin-left: 0;
+  }
+
+  .battle-bottom-grid .battle-hand .battle-card:not(:disabled):hover {
+    transform: translateY(-26px) scale(1.06) !important;
+  }
+
+  .battle-bottom-grid .battle-hand .card__frame {
+    grid-template-rows: auto 54px 1fr;
+    border-radius: 10px;
+    background:
+      linear-gradient(180deg, rgba(37,40,47,.98), rgba(13,15,19,.99));
+  }
+
+  /* Right-side action stack like a game command cluster. */
+  .battle-bottom-grid .combat-command-bar {
+    align-self: end;
+    margin: 0;
+  }
+
+  .battle-bottom-grid .combat-command-bar__actions {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    width: 100%;
+  }
+
+  .battle-bottom-grid .combat-action-button {
+    width: 100%;
+    min-height: 34px;
+    border-radius: 5px;
+    background: rgba(10,13,18,.76);
+    backdrop-filter: blur(7px);
+  }
+
+  .battle-bottom-grid .battle-end-turn {
+    width: 100%;
+    min-height: 58px;
+    border: 1px solid rgba(219,177,95,.45);
+    border-radius: 7px;
+    background:
+      linear-gradient(180deg, rgba(153,102,39,.94), rgba(93,57,21,.98));
+    box-shadow:
+      inset 0 1px rgba(255,255,255,.16),
+      0 8px 22px rgba(0,0,0,.36);
+  }
+
+  .battle-bottom-grid .battle-end-turn strong {
+    color: #fff2ce;
+    font-size: 14px;
+  }
+
+  .battle-bottom-grid .battle-end-turn span {
+    color: #d2b77e;
+  }
+
+  .save-toolbar {
+    top: 7px;
+    right: 8px;
+    z-index: 5000;
+    max-width: none;
+    padding: 0;
+    gap: 4px;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .save-toolbar button {
+    min-height: 28px;
+    padding: 4px 8px;
+    border-color: rgba(255,255,255,.1);
+    border-radius: 4px;
+    color: #aeb6c2;
+    background: rgba(5,7,10,.66);
+    font-size: 8px;
+    backdrop-filter: blur(6px);
+  }
+
+  .combat-cue {
+    top: 70px;
+  }
+}
+
+@media (max-height: 740px) and (min-width: 761px) {
+  .battle-arena {
+    padding-bottom: 174px;
+  }
+
+  .battle-bottom-grid {
+    height: 164px;
+  }
+
+  .battle-bottom-grid .battle-hand {
+    height: 160px;
+    min-height: 160px;
+  }
+
+  .battle-bottom-grid .battle-hand .battle-card {
+    flex-basis: 126px;
+    min-height: 160px;
+  }
+
+  .battle-bottom-grid .battle-hand .card__frame {
+    grid-template-rows: auto 42px 1fr;
+  }
+
+  .battle-enemy-line .enemy-unit {
+    min-height: 154px;
+  }
+
+  .battle-combat-row .player-hud {
+    min-height: 94px;
+  }
+}
+
+/* Mobile keeps the readable stacked layout, but gains the same background mood. */
+@media (max-width: 760px) {
+  .battle-shell {
+    background:
+      linear-gradient(180deg, rgba(5,7,10,.5), rgba(5,7,10,.9)),
+      url("https://newsroom.smilegate.com/s3/board/%EB%A1%9C%EC%8A%A4%ED%8A%B8%EC%95%84%ED%81%AC_%EC%8B%9C%EC%A6%8C2_%ED%8C%8C%EB%B0%8D_%EC%8B%9C%EC%8A%A4%ED%85%9C.png")
+        center / cover no-repeat;
+  }
+
+  .battle-arena {
+    background: rgba(5,7,10,.44);
+  }
+}
