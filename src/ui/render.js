@@ -9,6 +9,7 @@ import {
   getAvailableMapNodes,
   getCurrentMapNode,
 } from "../game/map.js";
+import { canChooseEventOption } from "../game/nodes.js";
 
 const STATUS_LABELS = Object.freeze({
   bleed: "출혈",
@@ -185,6 +186,9 @@ function renderRewardCard(cardId, slotLabel) {
 const MAP_TYPE_LABELS = Object.freeze({
   normal: "전투",
   elite: "엘리트",
+  event: "이벤트",
+  rest: "휴식",
+  shop: "상점",
   midboss: "중간 보스",
   boss: "보스",
 });
@@ -192,6 +196,9 @@ const MAP_TYPE_LABELS = Object.freeze({
 const MAP_TYPE_MARKS = Object.freeze({
   normal: "N",
   elite: "E",
+  event: "?",
+  rest: "R",
+  shop: "$",
   midboss: "M",
   boss: "B",
 });
@@ -272,6 +279,14 @@ function renderMapNode(map, node, availableIds, currentNode) {
   );
 }
 
+function renderNotice(app) {
+  if (!app.notice) {
+    return "";
+  }
+
+  return '<div class="notice-banner">' + app.notice + "</div>";
+}
+
 function renderMap(app) {
   const run = app.run;
   const map = run.map;
@@ -289,26 +304,31 @@ function renderMap(app) {
       '<header class="topbar panel">' +
         '<div><span class="label">HP</span><strong>' +
           run.hp + " / " + run.maxHp + "</strong></div>" +
+        '<div><span class="label">골드</span><strong>' +
+          run.gold + "G</strong></div>" +
         '<div><span class="label">승리</span><strong>' +
           run.victories + "</strong></div>" +
         '<div><span class="label">덱</span><strong>' +
           run.deck.length + "장</strong></div>" +
         '<div><span class="label">현재 층</span><strong>' +
           (currentNode ? "F" + (currentNode.row + 1) : "시작") + "</strong></div>" +
-        '<div><span class="label">MAP SEED</span><strong>' +
-          map.seed + "</strong></div>" +
       "</header>" +
+
+      renderNotice(app) +
 
       '<section class="map-panel panel">' +
         '<div class="map-panel__header">' +
           '<div><span class="eyebrow">BEAST LEGION ROUTE</span>' +
           "<h1>마수군단 진군로</h1></div>" +
-          "<p>밝게 표시된 연결 노드 중 하나를 선택하세요.</p>" +
+          "<p>밝게 표시된 연결 노드 중 하나를 선택하세요. · Seed " + map.seed + "</p>" +
         "</div>" +
 
         '<div class="map-legend">' +
           '<span><i class="legend-mark legend-mark--normal">N</i>전투</span>' +
           '<span><i class="legend-mark legend-mark--elite">E</i>엘리트</span>' +
+          '<span><i class="legend-mark legend-mark--event">?</i>이벤트</span>' +
+          '<span><i class="legend-mark legend-mark--rest">R</i>휴식</span>' +
+          '<span><i class="legend-mark legend-mark--shop">$</i>상점</span>' +
           '<span><i class="legend-mark legend-mark--midboss">M</i>중간 보스</span>' +
           '<span><i class="legend-mark legend-mark--boss">B</i>발탄</span>' +
         "</div>" +
@@ -344,8 +364,8 @@ function renderBattle(app) {
           battle.playerBlock + "</strong></div>" +
         '<div><span class="label">코스트</span><strong>' +
           battle.energy + " / " + MAX_ENERGY + "</strong></div>" +
-        '<div><span class="label">전투</span><strong>#' +
-          run.battleNumber + "</strong></div>" +
+        '<div><span class="label">골드</span><strong>' +
+          run.gold + "G</strong></div>" +
         '<div><span class="label">덱</span><strong>' +
           run.deck.length + "장</strong></div>" +
       "</header>" +
@@ -399,6 +419,7 @@ function renderReward(app) {
       '<section class="panel reward-panel">' +
         '<p class="eyebrow">전투 승리</p>' +
         "<h1>카드 보상</h1>" +
+        "<p>전투 보상 +" + app.lastGoldReward + "G · 현재 " + app.run.gold + "G</p>" +
         "<p>직업 1장, 공통 1장, 랜덤 1장. 한 장을 선택하거나 건너뜁니다.</p>" +
         '<div class="reward-grid">' +
           app.rewards.map(function rewardHtml(cardId, index) {
@@ -406,6 +427,101 @@ function renderReward(app) {
           }).join("") +
         "</div>" +
         '<button class="secondary-button" data-action="skip-reward">건너뛰기</button>' +
+      "</section>" +
+    "</main>"
+  );
+}
+
+
+function renderRest(app) {
+  const run = app.run;
+  const healAmount = Math.ceil(run.maxHp * 0.2);
+  const actualHeal = Math.min(healAmount, run.maxHp - run.hp);
+
+  return (
+    '<main class="center-screen">' +
+      '<section class="panel node-panel">' +
+        '<p class="eyebrow">REST</p>' +
+        "<h1>야영지</h1>" +
+        "<p>잠시 쉬며 체력을 회복할 수 있습니다.</p>" +
+        '<div class="node-stat">현재 HP <strong>' + run.hp + " / " + run.maxHp + "</strong></div>" +
+        '<button data-action="rest-heal">휴식하기 · HP ' + actualHeal + " 회복</button>" +
+      "</section>" +
+    "</main>"
+  );
+}
+
+function renderShopItem(app, item, index) {
+  const card = getCard(item.cardId);
+  const affordable = app.run.gold >= item.price;
+  const disabled = item.sold || !affordable;
+  const stateText = item.sold
+    ? "판매 완료"
+    : item.price + "G";
+
+  return (
+    '<div class="shop-item">' +
+      '<div class="' + cardClass(card) + '">' +
+        '<div class="card__header">' +
+          '<span class="card__cost">' + card.cost + "</span>" +
+          '<span class="card__rarity">' + card.rarity + "</span>" +
+        "</div>" +
+        '<strong class="card__name">' + card.name + "</strong>" +
+        '<span class="card__type">' + card.type + "</span>" +
+        "<p>" + card.description + "</p>" +
+        renderTags(card) +
+      "</div>" +
+      '<button data-action="buy-shop-card" data-item-index="' + index + '"' +
+        (disabled ? " disabled" : "") + ">" + stateText + "</button>" +
+    "</div>"
+  );
+}
+
+function renderShop(app) {
+  return (
+    '<main class="game-shell special-screen">' +
+      '<header class="special-header panel">' +
+        '<div><span class="eyebrow">SHOP</span><h1>떠돌이 상점</h1></div>' +
+        '<strong>' + app.run.gold + "G</strong>" +
+      "</header>" +
+      renderNotice(app) +
+      '<section class="shop-grid">' +
+        app.shop.items.map(function itemHtml(item, index) {
+          return renderShopItem(app, item, index);
+        }).join("") +
+      "</section>" +
+      '<button class="secondary-button special-leave" data-action="leave-shop">상점 나가기</button>' +
+    "</main>"
+  );
+}
+
+function renderEvent(app) {
+  const event = app.event;
+
+  return (
+    '<main class="center-screen">' +
+      '<section class="panel node-panel event-panel">' +
+        '<p class="eyebrow">EVENT</p>' +
+        "<h1>" + event.title + "</h1>" +
+        "<p>" + event.description + "</p>" +
+        '<div class="event-choices">' +
+          event.choices.map(function choiceHtml(choice) {
+            const enabled = canChooseEventOption(
+              app.run,
+              event,
+              choice.id
+            );
+
+            return (
+              '<button data-action="choose-event" data-choice-id="' + choice.id + '"' +
+                (enabled ? "" : " disabled") + ">" +
+                "<strong>" + choice.label + "</strong>" +
+                "<span>" + choice.detail + "</span>" +
+              "</button>"
+            );
+          }).join("") +
+        "</div>" +
+        renderNotice(app) +
       "</section>" +
     "</main>"
   );
@@ -430,7 +546,8 @@ function renderFieldClear(app) {
       '<section class="panel result-panel">' +
         '<p class="eyebrow">FIELD CLEAR</p>' +
         "<h1>마수군단 클리어</h1>" +
-        "<p>마수군단장 발탄을 쓰러뜨렸습니다. 현재 Vertical Slice의 마지막입니다.</p>" +
+        "<p>마수군단장 발탄을 쓰러뜨렸습니다. +" + app.lastGoldReward + "G · 총 " + app.run.gold + "G</p>" +
+        "<p>현재 Vertical Slice의 마지막입니다.</p>" +
         '<button data-action="new-run">새 런 시작</button>' +
       "</section>" +
     "</main>"
@@ -445,6 +562,21 @@ export function render(root, app) {
 
   if (app.mode === "reward") {
     root.innerHTML = renderReward(app);
+    return;
+  }
+
+  if (app.mode === "rest") {
+    root.innerHTML = renderRest(app);
+    return;
+  }
+
+  if (app.mode === "shop") {
+    root.innerHTML = renderShop(app);
+    return;
+  }
+
+  if (app.mode === "event") {
+    root.innerHTML = renderEvent(app);
     return;
   }
 
