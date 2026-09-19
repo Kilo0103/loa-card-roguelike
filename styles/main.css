@@ -1035,3 +1035,115 @@ button:not(:disabled) {
     0 0 0 2px rgba(198, 167, 255, 0.32),
     0 0 34px rgba(138, 109, 225, 0.36);
 }
+
+
+/* Potion inventory */
+.potion-bar {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 150px));
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.potion-slot {
+  min-height: 58px;
+  padding: 9px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  color: #e9edf7;
+  background: rgba(31, 37, 49, 0.9);
+  text-align: left;
+}
+
+.potion-slot strong,
+.potion-slot span {
+  display: block;
+}
+
+.potion-slot strong {
+  font-size: 12px;
+}
+
+.potion-slot span {
+  margin-top: 3px;
+  color: #97a1b5;
+  font-size: 9px;
+  line-height: 1.35;
+}
+
+.potion-slot:not(:disabled):hover {
+  border-color: rgba(198, 167, 255, 0.62);
+  background: rgba(74, 58, 109, 0.46);
+}
+
+.potion-slot:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.potion-slot--empty {
+  display: grid;
+  place-items: center;
+  border-style: dashed;
+  color: #687186;
+  background: rgba(255, 255, 255, 0.025);
+  text-align: center;
+}
+
+.potion-reward-panel {
+  width: min(660px, 100%);
+}
+
+.potion-reward-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: min(300px, 100%);
+  margin: 22px auto;
+  padding: 22px;
+  border: 1px solid rgba(198, 167, 255, 0.3);
+  border-radius: 16px;
+  background: rgba(75, 56, 112, 0.22);
+}
+
+.potion-reward-card strong {
+  font-size: 22px;
+}
+
+.potion-reward-card span {
+  color: #aeb7ca;
+  font-size: 12px;
+}
+
+.potion-replace-list {
+  display: grid;
+  gap: 9px;
+  margin: 18px 0;
+}
+
+.potion-replace-list button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  color: #fff;
+  background: #252b38;
+}
+
+.potion-replace-list button span {
+  color: #9ca6ba;
+  font-size: 11px;
+}
+
+@media (max-width: 760px) {
+  .potion-bar {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .potion-slot span {
+    display: none;
+  }
+}
