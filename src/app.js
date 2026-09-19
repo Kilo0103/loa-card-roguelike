@@ -1,5 +1,15 @@
-import { createBattle, endTurn, playCard } from "./game/battle.js";
-import { addCardToDeck, advanceRun, createCardRewards, createRun } from "./game/run.js";
+import {
+  createBattle,
+  endTurn,
+  playCard,
+  selectEnemy,
+} from "./game/battle.js";
+import {
+  addCardToDeck,
+  advanceRun,
+  createCardRewards,
+  createRun,
+} from "./game/run.js";
 import { render } from "./ui/render.js";
 
 const root = document.querySelector("#app");
@@ -43,7 +53,7 @@ function newRun() {
   startBattle();
 }
 
-root.addEventListener("click", (event) => {
+root.addEventListener("click", function handleClick(event) {
   const button = event.target.closest("[data-action]");
   if (!button) {
     return;
@@ -51,9 +61,14 @@ root.addEventListener("click", (event) => {
 
   const action = button.dataset.action;
 
+  if (action === "select-enemy") {
+    selectEnemy(app.battle, Number(button.dataset.enemyIndex));
+    render(root, app);
+    return;
+  }
+
   if (action === "play-card") {
-    const handIndex = Number(button.dataset.index);
-    playCard(app.run, app.battle, handIndex);
+    playCard(app.run, app.battle, Number(button.dataset.index));
     finishBattleAction();
     return;
   }
