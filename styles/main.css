@@ -5426,3 +5426,273 @@ button:not(:disabled) {
     padding: 7px 8px;
   }
 }
+
+
+/* UI-10 — final polish / regression-safe overrides */
+:root {
+  --ui-focus: rgba(206, 181, 255, 0.92);
+  --ui-focus-shadow: rgba(146, 108, 222, 0.28);
+}
+
+button:focus-visible,
+[tabindex]:focus-visible,
+summary:focus-visible {
+  outline: 2px solid var(--ui-focus);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 5px var(--ui-focus-shadow);
+}
+
+button {
+  font: inherit;
+}
+
+.notice-banner,
+.card p,
+.card__body p,
+.magic-book-card p,
+.shop-potion-card p,
+.bond-workshop p,
+.event-stage__header p,
+.event-choice-card__copy p,
+.reward-loot-card p,
+.reward-guidance {
+  overflow-wrap: anywhere;
+  word-break: keep-all;
+}
+
+.notice-banner {
+  max-width: 100%;
+  line-height: 1.55;
+}
+
+.battle-shell,
+.map-route-panel,
+.shop-section,
+.reward-stage,
+.event-stage,
+.rest-header,
+.shop-header {
+  isolation: isolate;
+}
+
+/* Keep fixed save controls from covering primary page information. */
+@media (min-width: 761px) {
+  .battle-topstrip,
+  .map-run-header,
+  .shop-header {
+    padding-right: 210px;
+  }
+
+  .save-toolbar {
+    max-width: 200px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .save-toolbar button {
+    min-height: 34px;
+  }
+}
+
+/* Large hands remain usable instead of being clipped by the battle shell. */
+.battle-hand--dense {
+  justify-content: flex-start;
+  padding-right: 24px;
+  padding-left: 24px;
+  overflow-x: auto;
+  overflow-y: visible;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.14) transparent;
+}
+
+.battle-hand--dense::-webkit-scrollbar {
+  height: 5px;
+}
+
+.battle-hand--dense::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(255,255,255,0.14);
+}
+
+.battle-hand--dense .battle-card {
+  flex-basis: 164px;
+  margin-left: -22px;
+}
+
+.battle-hand--dense .battle-card:first-child {
+  margin-left: 0;
+}
+
+/* Long names should never break layout hierarchy. */
+.card__name,
+.enemy-unit__identity > strong,
+.magic-book-chip__name,
+.shop-potion-card strong,
+.magic-book-card strong,
+.bond-select-card > strong,
+.event-choice-card__copy strong {
+  overflow-wrap: anywhere;
+}
+
+.shop-section .card__name,
+.reward-choice-card .card__name {
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.enemy-intent-orb strong {
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.enemy-statuses {
+  max-width: 100%;
+}
+
+.enemy-statuses span {
+  overflow-wrap: anywhere;
+}
+
+/* Disabled state should remain readable, not disappear. */
+button:disabled {
+  cursor: not-allowed;
+}
+
+.shop-section button:disabled,
+.bond-workshop button:disabled,
+.event-choice-card:disabled,
+.battle-card:disabled,
+.potion-slot:disabled {
+  opacity: 0.52;
+}
+
+/* Consistent primary/secondary interaction feedback. */
+.reward-primary-button,
+.battle-end-turn,
+.rest-choice-card > button,
+.bond-workshop > button {
+  transition:
+    transform 120ms ease,
+    filter 120ms ease,
+    box-shadow 120ms ease;
+}
+
+.reward-primary-button:not(:disabled):active,
+.battle-end-turn:not(:disabled):active,
+.rest-choice-card > button:not(:disabled):active,
+.bond-workshop > button:not(:disabled):active {
+  transform: translateY(1px) scale(0.99);
+}
+
+/* Boss/checkpoint labels remain readable at narrow route widths. */
+.map-canvas--route .map-node--boss .map-node__text,
+.map-canvas--route .map-node--midboss .map-node__text {
+  min-width: 86px;
+}
+
+/* Prevent resource bars from collapsing when content is long. */
+.bond-bar,
+.magic-book-bar,
+.potion-bar {
+  min-width: 0;
+}
+
+.bond-bar__identity,
+.bond-charge-track,
+.magic-book-list,
+.potion-slots {
+  min-width: 0;
+}
+
+/* Final narrow-screen safeguards. */
+@media (max-width: 760px) {
+  .save-toolbar {
+    padding-bottom: max(7px, env(safe-area-inset-bottom));
+  }
+
+  .battle-screen,
+  .map-screen,
+  .shop-screen,
+  .rest-scene,
+  .reward-scene,
+  .event-screen {
+    width: min(100% - 10px, 1440px);
+  }
+
+  .battle-hand--dense {
+    padding-right: 12px;
+    padding-left: 12px;
+    scrollbar-width: none;
+  }
+
+  .battle-hand--dense::-webkit-scrollbar {
+    display: none;
+  }
+
+  .battle-hand--dense .battle-card {
+    flex-basis: 146px;
+    margin-left: -3px;
+  }
+
+  .enemy-intent-orb strong {
+    font-size: 9px;
+  }
+
+  .notice-banner {
+    font-size: 10px;
+  }
+
+  .shop-section__heading h2,
+  .reward-section-heading h2 {
+    font-size: 16px;
+  }
+
+  .bond-select-card__effect p,
+  .event-choice-card__copy p,
+  .potion-reward-focus__info p {
+    font-size: 10px;
+  }
+
+  .map-mobile-hint,
+  .mobile-combat-hint {
+    position: relative;
+    z-index: 2;
+  }
+}
+
+@media (max-width: 390px) {
+  .battle-topstrip__encounter {
+    grid-template-columns: 1fr auto;
+  }
+
+  .battle-topstrip__encounter .eyebrow {
+    grid-column: 1 / 3;
+  }
+
+  .player-hud {
+    grid-template-columns: minmax(0, 1fr) 58px;
+  }
+
+  .player-energy strong {
+    font-size: 20px;
+  }
+
+  .battle-enemy-line .enemy-unit {
+    flex-basis: 82vw;
+  }
+
+  .reward-choice-card {
+    flex-basis: 184px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto !important;
+  }
+}
