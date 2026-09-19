@@ -4,7 +4,12 @@ import {
 } from "../data/enemies.js";
 import { getCard } from "../data/cards.js";
 import { hasMagicBook } from "../data/magicBooks.js";
-import { discardHand, drawCards, shuffle } from "./deck.js";
+import {
+  discardHand,
+  drawCards,
+  movePlayedCard,
+  shuffle,
+} from "./deck.js";
 import {
   dealDamageToEnemy,
   resolveCardEffects,
@@ -606,11 +611,16 @@ export function createBattle(run, mapNode) {
       nightmareAttackBonus: false,
       manaEchoStreak: 0,
       manaEchoTurns: 0,
+      retainedHandIndex: null,
+      retainSelectionMode: false,
+      contingencyRemaining: 0,
+      recyclingUsed: false,
     },
     playerDebuffs: {},
     charge: null,
     drawPile: shuffle(run.deck),
     discardPile: [],
+    exhaustPile: [],
     hand: [],
     status: "playing",
     log: [],
@@ -625,6 +635,13 @@ export function createBattle(run, mapNode) {
   }
 
   startPlayerTurn(run, battle);
+
+  if (hasMagicBook(run, "contingency_plan")) {
+    drawCards(battle, 2);
+    battle.playerStatuses.contingencyRemaining = 2;
+    addLog(battle, "예비 계획 — 2장을 추가 드로우. 버릴 카드 2장을 선택하세요.");
+  }
+
   return battle;
 }
 
@@ -732,6 +749,69 @@ export function getEffectiveCardCost(run, battle, card) {
   return Math.max(0, cost);
 }
 
+export function discardContingencyCard(run, battle, handIndex) {
+  if (
+    !hasMagicBook(run, "contingency_plan") ||
+    battle.status !== "playing" ||
+    battle.playerStatuses.contingencyRemaining <= 0
+  ) {
+    return false;
+  }
+
+  const cardId = battle.hand[handIndex];
+  if (!cardId) {
+    return false;
+  }
+
+  battle.hand.splice(handIndex, 1);
+  battle.discardPile.push(cardId);
+  battle.playerStatuses.contingencyRemaining -= 1;
+
+  addLog(
+    battle,
+    "예비 계획 — " + getCard(cardId).name +
+      " 버림 (" + battle.playerStatuses.contingencyRemaining + "장 남음)"
+  );
+
+  return true;
+}
+
+export function toggleRetainSelectionMode(run, battle) {
+  if (
+    !hasMagicBook(run, "fixed_memory") ||
+    battle.status !== "playing" ||
+    battle.playerStatuses.contingencyRemaining > 0
+  ) {
+    return false;
+  }
+
+  battle.playerStatuses.retainSelectionMode =
+    !battle.playerStatuses.retainSelectionMode;
+  return true;
+}
+
+export function selectRetainedCard(run, battle, handIndex) {
+  if (
+    !hasMagicBook(run, "fixed_memory") ||
+    battle.status !== "playing" ||
+    !battle.playerStatuses.retainSelectionMode
+  ) {
+    return false;
+  }
+
+  if (!battle.hand[handIndex]) {
+    return false;
+  }
+
+  battle.playerStatuses.retainedHandIndex = handIndex;
+  battle.playerStatuses.retainSelectionMode = false;
+  addLog(
+    battle,
+    "기억 고정 대상 — " + getCard(battle.hand[handIndex]).name
+  );
+  return true;
+}
+
 export function canEscapeBattle(run, battle) {
   return Boolean(
     battle &&
@@ -761,6 +841,11 @@ export function selectEnemy(battle, enemyIndex) {
 
 export function playCard(run, battle, handIndex) {
   if (battle.status !== "playing") {
+    return;
+  }
+
+  if (battle.playerStatuses.contingencyRemaining > 0) {
+    addLog(battle, "예비 계획의 버릴 카드부터 선택해야 합니다.");
     return;
   }
 
@@ -820,7 +905,17 @@ export function playCard(run, battle, handIndex) {
   }
 
   battle.hand.splice(handIndex, 1);
-  battle.discardPile.push(cardId);
+
+  if (
+    battle.playerStatuses.retainedHandIndex !== null &&
+    handIndex < battle.playerStatuses.retainedHandIndex
+  ) {
+    battle.playerStatuses.retainedHandIndex -= 1;
+  } else if (battle.playerStatuses.retainedHandIndex === handIndex) {
+    battle.playerStatuses.retainedHandIndex = null;
+  }
+
+  movePlayedCard(run, battle, cardId, card);
   battle.playerStatuses.cardsPlayedThisTurn += 1;
 
   if (wasFirstCard) {
@@ -899,6 +994,11 @@ export function endTurn(run, battle) {
     return;
   }
 
+  if (battle.playerStatuses.contingencyRemaining > 0) {
+    addLog(battle, "예비 계획의 버릴 카드 2장을 먼저 선택해야 합니다.");
+    return;
+  }
+
   resolveCharge(run, battle);
 
   if (checkVictory(run, battle)) {
@@ -945,7 +1045,24 @@ export function endTurn(run, battle) {
     }
   }
 
-  discardHand(battle);
+  const handResult = discardHand(run, battle);
+
+  if (handResult.retainedCardId) {
+    addLog(
+      battle,
+      "기억 고정 — " + getCard(handResult.retainedCardId).name +
+        " 다음 턴까지 보존"
+    );
+  }
+
+  if (handResult.recycledCardId) {
+    addLog(
+      battle,
+      "재활용 — " + getCard(handResult.recycledCardId).name +
+        " 소멸 대신 버림 더미로 이동"
+    );
+  }
+
   resolvePlayerDebuffsAtTurnEnd(run, battle);
   resolvePendingChecks(run, battle);
 
