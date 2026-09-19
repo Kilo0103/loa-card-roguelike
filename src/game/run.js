@@ -4,6 +4,7 @@ import {
   STARTING_DECK,
 } from "../data/cards.js";
 import { shuffle } from "./deck.js";
+import { createMap } from "./map.js";
 
 export function createRun() {
   return {
@@ -14,6 +15,8 @@ export function createRun() {
     gold: 0,
     battleNumber: 1,
     victories: 0,
+    map: createMap(),
+    lastEncounterKey: null,
   };
 }
 
