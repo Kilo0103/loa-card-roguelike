@@ -3,6 +3,7 @@ import {
   COMMON_REWARD_POOL,
   getCard,
 } from "../data/cards.js";
+import { hasMagicBook } from "../data/magicBooks.js";
 import { shuffle } from "./deck.js";
 
 const GOLD_REWARDS = Object.freeze({
@@ -34,7 +35,14 @@ function cardPrice(cardId) {
 }
 
 export function awardBattleGold(run, nodeType) {
-  const amount = GOLD_REWARDS[nodeType] || 20;
+  const baseAmount = GOLD_REWARDS[nodeType] || 20;
+  let amount = baseAmount;
+
+  if (hasMagicBook(run, "tooki_tooki")) {
+    const bonusPercent = 25 + Math.floor(Math.random() * 31);
+    amount += Math.floor(baseAmount * bonusPercent / 100);
+  }
+
   run.gold += amount;
   return amount;
 }
