@@ -1,5 +1,5 @@
 export const MAGIC_BOOK_LIBRARY = Object.freeze({
-  grudge: { number: 1, id: "grudge", name: "원한", source: "loa", implemented: false, description: "가하는 피해 증가 + 받는 피해 증가. 정확한 수치 미정." },
+  grudge: { number: 1, id: "grudge", name: "원한", source: "loa", implemented: true, description: "중간 보스·보스에게 주는 피해 +20%, 받는 피해 +20%." },
   adrenaline: { number: 2, id: "adrenaline", name: "아드레날린", source: "loa", implemented: false, description: "사용한 코스트에 따라 다음 턴 추가 피해. 정확한 구간 미정." },
   mass_increase: { number: 3, id: "mass_increase", name: "질량 증가", source: "loa", implemented: true, description: "모든 공격 카드 기본 코스트 +1, 공격 피해 +2." },
   crisis_evasion: { number: 4, id: "crisis_evasion", name: "위기 모면", source: "loa", implemented: false, description: "치명 피해 생존 후 랜덤 마법서 파괴. 세부 계산 미정." },
@@ -123,17 +123,6 @@ export function getAvailableImplementedMagicBookIds(run) {
     return getMagicBook(bookId).implemented;
   });
 }
-
-export function rollMagicBookDrop(run) {
-  const available = getAvailableImplementedMagicBookIds(run);
-
-  if (available.length === 0) {
-    return null;
-  }
-
-  return available[Math.floor(Math.random() * available.length)];
-}
-
 
 export function rollMagicBookDrop(run) {
   const available = getAvailableImplementedMagicBookIds(run);
