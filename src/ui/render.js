@@ -44,6 +44,14 @@ function statusLabel(name) {
   return STATUS_LABELS[name] || name;
 }
 
+function escapeAttribute(value) {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
 function cardClass(card) {
   return "card card--" + card.type + " card--" + card.rarity;
 }
@@ -487,8 +495,13 @@ function renderMagicBookBar(run) {
         run.magicBooks.map(function bookHtml(bookId) {
           const book = getMagicBook(bookId);
           return (
-            '<span class="magic-book-chip" title="' +
-              book.name + " · " + book.description + '">' +
+            '<span class="magic-book-chip" tabindex="0"' +
+              ' data-magic-book-tooltip' +
+              ' data-book-number="' + escapeAttribute(book.number) + '"' +
+              ' data-book-name="' + escapeAttribute(book.name) + '"' +
+              ' data-book-description="' + escapeAttribute(book.description) + '"' +
+              ' aria-label="마법서 #' + escapeAttribute(book.number) + ' ' +
+                escapeAttribute(book.name) + ' · ' + escapeAttribute(book.description) + '">' +
               '<b>#' + book.number + "</b>" +
               '<span class="magic-book-chip__name">' + book.name + "</span>" +
             "</span>"
