@@ -6321,3 +6321,292 @@ button:disabled {
     animation: none;
   }
 }
+
+
+/* Playtest viewport compression — tools and hand share one row */
+.battle-bottom-grid {
+  display: grid;
+  grid-template-columns: minmax(320px, 0.9fr) minmax(520px, 1.7fr);
+  align-items: stretch;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.battle-side-tools {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 6px;
+}
+
+.battle-bottom-grid .battle-resource-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 5px;
+  margin-top: 0;
+}
+
+.battle-bottom-grid .battle-resource-row > .potion-bar,
+.battle-bottom-grid .battle-resource-row > .bond-bar,
+.battle-bottom-grid .battle-resource-row > .magic-book-bar {
+  min-height: 38px;
+  margin: 0;
+  padding: 5px 7px;
+  border-radius: 9px;
+}
+
+.battle-bottom-grid .resource-bar-heading {
+  gap: 5px;
+}
+
+.battle-bottom-grid .resource-bar-heading .label {
+  font-size: 8px;
+}
+
+.battle-bottom-grid .magic-book-list {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.battle-bottom-grid .magic-book-list::-webkit-scrollbar {
+  display: none;
+}
+
+.battle-bottom-grid .magic-book-chip {
+  flex: 0 0 auto;
+  padding: 3px 6px;
+  font-size: 8px;
+}
+
+.battle-bottom-grid .potion-slots {
+  gap: 4px;
+}
+
+.battle-bottom-grid .potion-slot {
+  min-height: 30px;
+  padding: 3px 5px;
+}
+
+.battle-bottom-grid .bond-bar {
+  gap: 6px;
+}
+
+.battle-bottom-grid .bond-materials {
+  display: none;
+}
+
+.battle-bottom-grid .combat-command-bar {
+  margin-top: 0;
+}
+
+.battle-bottom-grid .combat-command-bar__actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0,1fr));
+  gap: 5px;
+}
+
+.battle-bottom-grid .combat-action-button,
+.battle-bottom-grid .battle-end-turn {
+  min-height: 36px;
+  padding: 4px 7px;
+  border-radius: 8px;
+}
+
+.battle-bottom-grid .combat-action-button__label,
+.battle-bottom-grid .combat-action-button small,
+.battle-bottom-grid .battle-end-turn span {
+  font-size: 7px;
+}
+
+.battle-bottom-grid .combat-action-button strong,
+.battle-bottom-grid .battle-end-turn strong {
+  font-size: 10px;
+}
+
+.battle-bottom-grid .battle-log--compact {
+  margin-top: auto;
+}
+
+.battle-bottom-grid .battle-log--compact summary {
+  padding: 5px 8px;
+}
+
+.battle-bottom-grid .battle-hand {
+  align-self: stretch;
+  justify-content: center;
+  min-height: 176px;
+  height: 100%;
+  margin-top: 0;
+  padding: 8px 32px 0;
+}
+
+.battle-bottom-grid .battle-hand .battle-card {
+  flex-basis: 132px;
+  min-height: 170px;
+  margin-left: -18px;
+}
+
+.battle-bottom-grid .battle-hand .card__frame {
+  grid-template-rows: auto 48px 1fr;
+  padding: 7px;
+  border-radius: 13px;
+}
+
+.battle-bottom-grid .battle-hand .card__art {
+  min-height: 0;
+}
+
+.battle-bottom-grid .battle-hand .card__cost {
+  width: 24px;
+  height: 24px;
+  font-size: 10px;
+}
+
+.battle-bottom-grid .battle-hand .card__name {
+  font-size: 9px;
+}
+
+.battle-bottom-grid .battle-hand .card__body p {
+  font-size: 7.5px;
+  line-height: 1.35;
+}
+
+.battle-bottom-grid .battle-hand .card__tags,
+.battle-bottom-grid .battle-hand .card__type,
+.battle-bottom-grid .battle-hand .card__rarity {
+  font-size: 6.5px;
+}
+
+/* Cut another chunk from the battlefield on desktop. */
+@media (min-width: 761px) {
+  .battle-stage {
+    min-height: 246px;
+  }
+
+  .battle-arena {
+    min-height: 246px;
+    padding: 12px 14px 10px;
+  }
+
+  .battle-arena__heading {
+    margin-bottom: 3px;
+  }
+
+  .battle-combat-row {
+    min-height: 192px;
+    grid-template-columns: minmax(205px,.62fr) minmax(0,2fr);
+    gap: 16px;
+  }
+
+  .battle-combat-row .player-hud {
+    width: min(270px,100%);
+    min-height: 118px;
+    padding: 9px 10px;
+  }
+
+  .battle-combat-row .player-hud__avatar {
+    width: 42px;
+    height: 42px;
+    font-size: 17px;
+  }
+
+  .battle-enemy-line .enemy-unit {
+    flex-basis: 190px;
+    min-height: 188px;
+    padding-top: 50px;
+  }
+
+  .battle-enemy-line .enemy-unit__portrait {
+    width: 52px;
+    height: 52px;
+  }
+
+  .battle-enemy-line .enemy-intent-orb {
+    min-height: 40px;
+  }
+
+  .battle-screen {
+    padding-top: 4px;
+    padding-bottom: 6px;
+  }
+
+  .battle-shell {
+    padding: 7px 9px 8px;
+  }
+
+  .battle-topstrip {
+    min-height: 36px;
+    padding: 2px 8px 5px;
+  }
+
+  .battle-topstrip__encounter > strong {
+    font-size: 12px;
+  }
+
+  .battle-topstrip__meta {
+    gap: 9px;
+    font-size: 9px;
+  }
+}
+
+/* Mid-size desktop/laptop screens: preserve the compact row without overflow. */
+@media (max-width: 1100px) and (min-width: 761px) {
+  .battle-bottom-grid {
+    grid-template-columns: minmax(285px,.85fr) minmax(430px,1.4fr);
+  }
+
+  .battle-bottom-grid .battle-hand .battle-card {
+    flex-basis: 122px;
+    min-height: 164px;
+    margin-left: -20px;
+  }
+}
+
+/* Mobile keeps the stacked interaction model. */
+@media (max-width: 760px) {
+  .battle-bottom-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .battle-side-tools {
+    order: 2;
+  }
+
+  .battle-bottom-grid .battle-hand {
+    order: 1;
+    min-height: 178px;
+    height: auto;
+    padding: 7px 10px 0;
+    justify-content: flex-start;
+    overflow-x: auto;
+  }
+
+  .battle-bottom-grid .battle-hand .battle-card {
+    flex: 0 0 132px;
+    min-height: 174px;
+    margin-left: -3px;
+  }
+
+  .battle-bottom-grid .battle-resource-row {
+    display: flex;
+    gap: 5px;
+    overflow-x: auto;
+  }
+
+  .battle-bottom-grid .battle-resource-row > .potion-bar,
+  .battle-bottom-grid .battle-resource-row > .bond-bar,
+  .battle-bottom-grid .battle-resource-row > .magic-book-bar {
+    flex: 0 0 min(84vw,300px);
+  }
+
+  .battle-bottom-grid .combat-command-bar__actions {
+    grid-template-columns: repeat(2,minmax(0,1fr));
+  }
+
+  .battle-bottom-grid .battle-log--compact {
+    margin-top: 0;
+  }
+}
