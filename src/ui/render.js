@@ -4,6 +4,11 @@ import {
   getEnemyIntent,
   MAX_ENERGY,
 } from "../game/battle.js";
+import {
+  getAllMapNodes,
+  getAvailableMapNodes,
+  getCurrentMapNode,
+} from "../game/map.js";
 
 const STATUS_LABELS = Object.freeze({
   bleed: "출혈",
@@ -176,6 +181,149 @@ function renderRewardCard(cardId, slotLabel) {
   );
 }
 
+
+const MAP_TYPE_LABELS = Object.freeze({
+  normal: "전투",
+  elite: "엘리트",
+  midboss: "중간 보스",
+  boss: "보스",
+});
+
+const MAP_TYPE_MARKS = Object.freeze({
+  normal: "N",
+  elite: "E",
+  midboss: "M",
+  boss: "B",
+});
+
+function mapNodePosition(node, rowCount) {
+  const xPositions = [14, 38, 62, 86];
+
+  return {
+    xPercent: xPositions[node.column],
+    xView: xPositions[node.column] * 10,
+    y: 40 + (rowCount - 1 - node.row) * 92,
+  };
+}
+
+function renderMapEdges(map) {
+  const nodes = getAllMapNodes(map);
+  const byId = new Map(nodes.map(function mapEntry(node) {
+    return [node.id, node];
+  }));
+  const height = 80 + (map.rows.length - 1) * 92;
+  const lines = [];
+
+  for (const source of nodes) {
+    const sourcePosition = mapNodePosition(source, map.rows.length);
+
+    for (const targetId of source.nextIds) {
+      const target = byId.get(targetId);
+      if (!target) {
+        continue;
+      }
+
+      const targetPosition = mapNodePosition(target, map.rows.length);
+      const active = source.completed;
+
+      lines.push(
+        '<line class="map-edge' + (active ? " map-edge--active" : "") + '"' +
+        ' x1="' + sourcePosition.xView + '"' +
+        ' y1="' + sourcePosition.y + '"' +
+        ' x2="' + targetPosition.xView + '"' +
+        ' y2="' + targetPosition.y + '"></line>'
+      );
+    }
+  }
+
+  return (
+    '<svg class="map-edges" viewBox="0 0 1000 ' + height + '"' +
+      ' preserveAspectRatio="none" aria-hidden="true">' +
+      lines.join("") +
+    "</svg>"
+  );
+}
+
+function renderMapNode(map, node, availableIds, currentNode) {
+  const position = mapNodePosition(node, map.rows.length);
+  const available = availableIds.has(node.id);
+  const current = currentNode && currentNode.id === node.id;
+  const classes = [
+    "map-node",
+    "map-node--" + node.type,
+    available ? "map-node--available" : "",
+    node.completed ? "map-node--completed" : "",
+    current ? "map-node--current" : "",
+  ].filter(Boolean).join(" ");
+
+  const label = node.label || MAP_TYPE_LABELS[node.type];
+  const disabled = available ? "" : " disabled";
+
+  return (
+    '<button class="' + classes + '"' +
+      ' style="left:' + position.xPercent + '%;top:' + position.y + 'px"' +
+      ' data-action="select-map-node"' +
+      ' data-node-id="' + node.id + '"' +
+      disabled + ">" +
+      '<span class="map-node__mark">' + MAP_TYPE_MARKS[node.type] + "</span>" +
+      '<span class="map-node__label">' + label + "</span>" +
+      '<span class="map-node__floor">F' + (node.row + 1) + "</span>" +
+    "</button>"
+  );
+}
+
+function renderMap(app) {
+  const run = app.run;
+  const map = run.map;
+  const nodes = getAllMapNodes(map);
+  const availableIds = new Set(
+    getAvailableMapNodes(map).map(function availableId(node) {
+      return node.id;
+    })
+  );
+  const currentNode = getCurrentMapNode(map);
+  const height = 80 + (map.rows.length - 1) * 92;
+
+  return (
+    '<main class="game-shell map-screen">' +
+      '<header class="topbar panel">' +
+        '<div><span class="label">HP</span><strong>' +
+          run.hp + " / " + run.maxHp + "</strong></div>" +
+        '<div><span class="label">승리</span><strong>' +
+          run.victories + "</strong></div>" +
+        '<div><span class="label">덱</span><strong>' +
+          run.deck.length + "장</strong></div>" +
+        '<div><span class="label">현재 층</span><strong>' +
+          (currentNode ? "F" + (currentNode.row + 1) : "시작") + "</strong></div>" +
+        '<div><span class="label">MAP SEED</span><strong>' +
+          map.seed + "</strong></div>" +
+      "</header>" +
+
+      '<section class="map-panel panel">' +
+        '<div class="map-panel__header">' +
+          '<div><span class="eyebrow">BEAST LEGION ROUTE</span>' +
+          "<h1>마수군단 진군로</h1></div>" +
+          "<p>밝게 표시된 연결 노드 중 하나를 선택하세요.</p>" +
+        "</div>" +
+
+        '<div class="map-legend">' +
+          '<span><i class="legend-mark legend-mark--normal">N</i>전투</span>' +
+          '<span><i class="legend-mark legend-mark--elite">E</i>엘리트</span>' +
+          '<span><i class="legend-mark legend-mark--midboss">M</i>중간 보스</span>' +
+          '<span><i class="legend-mark legend-mark--boss">B</i>발탄</span>' +
+        "</div>" +
+
+        '<div class="map-canvas" style="height:' + height + 'px">' +
+          renderMapEdges(map) +
+          nodes.map(function mapNodeHtml(node) {
+            return renderMapNode(map, node, availableIds, currentNode);
+          }).join("") +
+        "</div>" +
+      "</section>" +
+    "</main>"
+  );
+}
+
 function renderBattle(app) {
   const run = app.run;
   const battle = app.battle;
@@ -290,6 +438,11 @@ function renderFieldClear(app) {
 }
 
 export function render(root, app) {
+  if (app.mode === "map") {
+    root.innerHTML = renderMap(app);
+    return;
+  }
+
   if (app.mode === "reward") {
     root.innerHTML = renderReward(app);
     return;
