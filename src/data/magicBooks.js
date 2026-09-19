@@ -116,3 +116,19 @@ export function getAvailableMagicBookIds(run) {
     return canAcquireMagicBook(run, bookId);
   });
 }
+
+
+export function createMagicBookRewards(run, amount = 3) {
+  const available = getAvailableMagicBookIds(run);
+  const shuffled = [...available];
+
+  for (let index = shuffled.length - 1; index > 0; index -= 1) {
+    const randomIndex = Math.floor(Math.random() * (index + 1));
+    [shuffled[index], shuffled[randomIndex]] = [
+      shuffled[randomIndex],
+      shuffled[index],
+    ];
+  }
+
+  return shuffled.slice(0, amount);
+}
