@@ -142,6 +142,13 @@ export function getFlatAttackBonus(run, battle, card, enemy, options = {}) {
     bonus += 5;
   }
 
+  if (
+    hasMagicBook(run, "endless_nightmare") &&
+    battle.playerStatuses.nightmareAttackBonus
+  ) {
+    bonus += 4;
+  }
+
   return bonus;
 }
 
