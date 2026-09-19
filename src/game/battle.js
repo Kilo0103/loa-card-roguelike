@@ -3,14 +3,22 @@ import {
   getEncounterForNode,
 } from "../data/enemies.js";
 import { getCard } from "../data/cards.js";
+import { hasMagicBook } from "../data/magicBooks.js";
 import { discardHand, drawCards, shuffle } from "./deck.js";
 import {
   dealDamageToEnemy,
   resolveCardEffects,
   resolveCharge,
 } from "./effects.js";
+import {
+  BASE_MAX_ENERGY,
+  getBlockGain,
+  getCardCostAdjustment,
+  getMaxEnergy,
+  getStartingChargeStage,
+} from "./magicBookEffects.js";
 
-export const MAX_ENERGY = 5;
+export const MAX_ENERGY = BASE_MAX_ENERGY;
 const HAND_SIZE = 5;
 
 function addLog(battle, message) {
@@ -25,6 +33,7 @@ function currentIntentList(enemy) {
         return !intent.requiresNoImmortal;
       });
     }
+
     return enemy.ghostIntents;
   }
 
@@ -60,6 +69,22 @@ function tickStatuses(statuses) {
       delete statuses[key];
     }
   }
+}
+
+function maybeTriggerFirstAid(run, battle) {
+  if (
+    !hasMagicBook(run, "first_aid") ||
+    battle.playerStatuses.firstAidUsed ||
+    run.hp > run.maxHp * 0.5 ||
+    run.hp <= 0
+  ) {
+    return;
+  }
+
+  const previousHp = run.hp;
+  run.hp = Math.min(run.maxHp, run.hp + 5);
+  battle.playerStatuses.firstAidUsed = true;
+  addLog(battle, "응급 처치 — HP " + (run.hp - previousHp) + " 회복");
 }
 
 function addPlayerDebuff(battle, type, duration, value) {
@@ -112,6 +137,13 @@ function damagePlayer(run, battle, enemy, amount, piercing) {
     battle.playerBlock -= absorbed;
   }
 
+  if (
+    absorbed > 0 &&
+    hasMagicBook(run, "counter_stance")
+  ) {
+    battle.playerStatuses.counterStanceReady = true;
+  }
+
   run.hp = Math.max(0, run.hp - hpDamage);
 
   const piercingText = piercing ? " [쉴드 관통]" : "";
@@ -121,8 +153,22 @@ function damagePlayer(run, battle, enemy, amount, piercing) {
       " (HP 피해 " + hpDamage + ")"
   );
 
+  if (
+    hpDamage > 0 &&
+    hasMagicBook(run, "indomitable") &&
+    !battle.playerStatuses.indomitableUsedThisEnemyTurn
+  ) {
+    const gained = getBlockGain(run, 3);
+    battle.playerBlock += gained;
+    battle.playerStatuses.indomitableUsedThisEnemyTurn = true;
+    addLog(battle, "불굴 — 보호막 " + gained + " 획득");
+  }
+
+  maybeTriggerFirstAid(run, battle);
+
   if (battle.playerStatuses.counterSpear) {
     battle.playerStatuses.counterSpear = false;
+
     if (absorbed > 0 && enemy.hp > 0) {
       dealDamageToEnemy(battle, enemy, absorbed);
       addLog(battle, "카운터 스피어 — 소모된 보호막 " + absorbed + " 반격");
@@ -157,6 +203,7 @@ function resolveEnemyIntent(run, battle, enemy) {
     return;
   }
 
+  battle.playerStatuses.indomitableUsedThisEnemyTurn = false;
   updateBossPhase(battle, enemy);
 
   if (enemy.staggeredTurns > 0) {
@@ -219,6 +266,7 @@ function resolveEnemyIntent(run, battle, enemy) {
       return other !== enemy && other.hp > 0;
     }).length;
     const bonus = Math.min(intent.maxBonus, livingAllies * intent.bonusPerAlly);
+
     damagePlayer(
       run,
       battle,
@@ -229,6 +277,7 @@ function resolveEnemyIntent(run, battle, enemy) {
     enemy.attackBonus = 0;
   } else if (intent.type === "conditionalAttack") {
     const bonus = battle.playerDebuffs[intent.status] ? intent.bonus : 0;
+
     damagePlayer(
       run,
       battle,
@@ -242,6 +291,7 @@ function resolveEnemyIntent(run, battle, enemy) {
       return Boolean(battle.playerDebuffs[status]);
     });
     const bonus = hasStatus ? intent.bonus : 0;
+
     damagePlayer(
       run,
       battle,
@@ -259,6 +309,7 @@ function resolveEnemyIntent(run, battle, enemy) {
         ally.attackBonus += intent.value;
       }
     }
+
     addLog(battle, enemy.name + "이 다른 마수들의 다음 공격을 강화");
   } else if (intent.type === "summon") {
     const livingCount = battle.enemies.filter(function alive(other) {
@@ -309,6 +360,7 @@ function resolvePlayerDebuffsAtTurnEnd(run, battle) {
   if (bleed) {
     run.hp = Math.max(0, run.hp - bleed.value);
     addLog(battle, "출혈로 HP " + bleed.value + " 피해");
+    maybeTriggerFirstAid(run, battle);
   }
 
   tickStatuses(battle.playerDebuffs);
@@ -367,16 +419,48 @@ function resolvePendingChecks(run, battle) {
   }
 }
 
-function startPlayerTurn(battle) {
+function startPlayerTurn(run, battle) {
   battle.turn += 1;
-  battle.energy = MAX_ENERGY;
+
+  const bonusEnergy = battle.playerStatuses.nextTurnEnergyBonus;
+  battle.energy = getMaxEnergy(run) + bonusEnergy;
+  battle.playerStatuses.nextTurnEnergyBonus = 0;
   battle.playerStatuses.cardsPlayedThisTurn = 0;
+  battle.playerStatuses.guardianInstinctUsed = false;
+  battle.playerStatuses.manaRefundUsed = false;
+  battle.playerStatuses.rapidDeploymentUsed = false;
+  battle.playerStatuses.tidyUpUsed = false;
+  battle.playerStatuses.combatBreathingReady = false;
+
+  if (
+    hasMagicBook(run, "iron_will") &&
+    battle.playerBlock > 0
+  ) {
+    const gained = getBlockGain(run, 2);
+    battle.playerBlock += gained;
+    addLog(battle, "철벽의 의지 — 보호막 " + gained + " 획득");
+  }
+
   drawCards(battle, HAND_SIZE);
   ensureSelectedEnemy(battle);
   addLog(battle, battle.turn + "턴 시작");
 }
 
-function checkVictory(battle) {
+function resolveVictoryEffects(run, battle) {
+  if (battle.playerStatuses.victoryResolved) {
+    return;
+  }
+
+  battle.playerStatuses.victoryResolved = true;
+
+  if (hasMagicBook(run, "recovery")) {
+    const previousHp = run.hp;
+    run.hp = Math.min(run.maxHp, run.hp + 3);
+    addLog(battle, "회생 — HP " + (run.hp - previousHp) + " 회복");
+  }
+}
+
+function checkVictory(run, battle) {
   const alive = battle.enemies.some(function alive(enemy) {
     return enemy.hp > 0;
   });
@@ -384,6 +468,7 @@ function checkVictory(battle) {
   if (!alive) {
     battle.status = "victory";
     battle.charge = null;
+    resolveVictoryEffects(run, battle);
     addLog(battle, "전투 승리!");
     return true;
   }
@@ -403,6 +488,54 @@ function selectedEnemy(battle) {
   return battle.enemies[battle.selectedEnemyIndex] || null;
 }
 
+function resolvePostCardMagicBooks(run, battle, card) {
+  if (
+    hasMagicBook(run, "lightweight_combat") &&
+    card.cost <= 1
+  ) {
+    battle.playerStatuses.lightweightCount += 1;
+
+    if (battle.playerStatuses.lightweightCount % 3 === 0) {
+      drawCards(battle, 1);
+      addLog(battle, "경량 전투 — 1장 드로우");
+    }
+  }
+
+  if (
+    hasMagicBook(run, "rapid_deployment") &&
+    battle.playerStatuses.cardsPlayedThisTurn >= 3 &&
+    !battle.playerStatuses.rapidDeploymentUsed
+  ) {
+    battle.playerStatuses.rapidDeploymentUsed = true;
+    drawCards(battle, 1);
+    addLog(battle, "신속 전개 — 1장 드로우");
+  }
+
+  if (
+    hasMagicBook(run, "tidy_up") &&
+    battle.hand.length === 0 &&
+    !battle.playerStatuses.tidyUpUsed
+  ) {
+    battle.playerStatuses.tidyUpUsed = true;
+    drawCards(battle, 2);
+    addLog(battle, "정리 정돈 — 2장 드로우");
+  }
+}
+
+function finishAttackCard(battle, card) {
+  if (card.type !== "attack") {
+    return;
+  }
+
+  battle.playerStatuses.firstAttackUsed = true;
+  battle.playerStatuses.counterStanceReady = false;
+  battle.playerStatuses.counterattackReady = false;
+}
+
+export function getPlayerMaxEnergy(run) {
+  return getMaxEnergy(run);
+}
+
 export function createBattle(run, mapNode) {
   const encounterInfo = getEncounterForNode(mapNode, run.lastEncounterKey);
   run.lastEncounterKey = encounterInfo.key;
@@ -418,11 +551,26 @@ export function createBattle(run, mapNode) {
     }),
     selectedEnemyIndex: 0,
     turn: 0,
-    energy: MAX_ENERGY,
+    energy: getMaxEnergy(run),
     playerBlock: 0,
     playerStatuses: {
       counterSpear: false,
       cardsPlayedThisTurn: 0,
+      firstAttackUsed: false,
+      firstAidUsed: false,
+      counterStanceReady: false,
+      counterattackReady: false,
+      guardianInstinctUsed: false,
+      manaRefundUsed: false,
+      rapidDeploymentUsed: false,
+      tidyUpUsed: false,
+      combatBreathingReady: false,
+      lightweightCount: 0,
+      nextTurnEnergyBonus: 0,
+      currentCardEndsAtZero: false,
+      indomitableUsedThisEnemyTurn: false,
+      bloodContractActive: false,
+      victoryResolved: false,
     },
     playerDebuffs: {},
     charge: null,
@@ -433,7 +581,15 @@ export function createBattle(run, mapNode) {
     log: [],
   };
 
-  startPlayerTurn(battle);
+  if (hasMagicBook(run, "blood_contract")) {
+    const hpLoss = Math.ceil(run.maxHp * 0.1);
+    run.hp = Math.max(1, run.hp - hpLoss);
+    battle.playerStatuses.bloodContractActive = true;
+    addLog(battle, "피의 계약 — HP " + hpLoss + " 소모");
+    maybeTriggerFirstAid(run, battle);
+  }
+
+  startPlayerTurn(run, battle);
   return battle;
 }
 
@@ -465,6 +621,7 @@ export function getEnemyIntent(battle, enemy) {
       return other !== enemy && other.hp > 0;
     }).length;
     const bonus = Math.min(intent.maxBonus, livingAllies * intent.bonusPerAlly);
+
     return {
       ...intent,
       label: "무리 공격 " + (intent.value + bonus + enemy.attackBonus),
@@ -473,6 +630,7 @@ export function getEnemyIntent(battle, enemy) {
 
   if (intent.type === "conditionalAttack") {
     const bonus = battle.playerDebuffs[intent.status] ? intent.bonus : 0;
+
     return {
       ...intent,
       label: intent.label + (bonus > 0 ? " → " + (intent.value + bonus) : ""),
@@ -483,17 +641,21 @@ export function getEnemyIntent(battle, enemy) {
     const hasStatus = intent.statuses.some(function hasDebuff(status) {
       return Boolean(battle.playerDebuffs[status]);
     });
+
     return {
       ...intent,
-      label: intent.label + (hasStatus ? " → " + (intent.value + intent.bonus) : ""),
+      label: intent.label +
+        (hasStatus ? " → " + (intent.value + intent.bonus) : ""),
     };
   }
 
   if (
-    (intent.type === "attack" ||
+    (
+      intent.type === "attack" ||
       intent.type === "attackStatus" ||
       intent.type === "multiAttack" ||
-      intent.type === "multiAttackStatus") &&
+      intent.type === "multiAttackStatus"
+    ) &&
     enemy.attackBonus > 0
   ) {
     return {
@@ -505,7 +667,7 @@ export function getEnemyIntent(battle, enemy) {
   return intent;
 }
 
-export function getEffectiveCardCost(battle, card) {
+export function getEffectiveCardCost(run, battle, card) {
   if (card.unplayable) {
     return Number.POSITIVE_INFINITY;
   }
@@ -514,6 +676,8 @@ export function getEffectiveCardCost(battle, card) {
 
   if (card.charge && battle.charge && battle.charge.card.id === card.id) {
     cost = 0;
+  } else {
+    cost += getCardCostAdjustment(run, battle, card);
   }
 
   if (battle.playerStatuses.cardsPlayedThisTurn === 0) {
@@ -523,7 +687,7 @@ export function getEffectiveCardCost(battle, card) {
     cost += frozen ? frozen.value : 0;
   }
 
-  return cost;
+  return Math.max(0, cost);
 }
 
 export function selectEnemy(battle, enemyIndex) {
@@ -546,7 +710,7 @@ export function playCard(run, battle, handIndex) {
     return;
   }
 
-  const cost = getEffectiveCardCost(battle, card);
+  const cost = getEffectiveCardCost(run, battle, card);
 
   if (cost > battle.energy) {
     addLog(battle, "코스트가 부족합니다.");
@@ -554,8 +718,9 @@ export function playCard(run, battle, handIndex) {
   }
 
   if (battle.charge && battle.charge.card.id !== card.id) {
-    resolveCharge(battle);
-    if (checkVictory(battle)) {
+    resolveCharge(run, battle);
+
+    if (checkVictory(run, battle)) {
       return;
     }
   }
@@ -567,11 +732,47 @@ export function playCard(run, battle, handIndex) {
   }
 
   const wasFirstCard = battle.playerStatuses.cardsPlayedThisTurn === 0;
+  const guardianInstinctApplies =
+    hasMagicBook(run, "guardian_instinct") &&
+    card.type === "defense" &&
+    battle.playerBlock >= 20 &&
+    !battle.playerStatuses.guardianInstinctUsed;
+  const combatBreathingApplies =
+    hasMagicBook(run, "combat_breathing") &&
+    battle.playerStatuses.combatBreathingReady;
+  const manaRefundApplies =
+    hasMagicBook(run, "mana_refund") &&
+    card.cost >= 3 &&
+    !battle.playerStatuses.manaRefundUsed;
+
+  battle.playerStatuses.currentCardEndsAtZero =
+    battle.energy - cost === 0;
 
   battle.energy -= cost;
   battle.hand.splice(handIndex, 1);
   battle.discardPile.push(cardId);
   battle.playerStatuses.cardsPlayedThisTurn += 1;
+
+  if (guardianInstinctApplies) {
+    battle.playerStatuses.guardianInstinctUsed = true;
+  }
+
+  if (combatBreathingApplies) {
+    battle.playerStatuses.combatBreathingReady = false;
+  }
+
+  if (
+    hasMagicBook(run, "combat_breathing") &&
+    battle.playerStatuses.cardsPlayedThisTurn === 3
+  ) {
+    battle.playerStatuses.combatBreathingReady = true;
+  }
+
+  if (manaRefundApplies) {
+    battle.playerStatuses.manaRefundUsed = true;
+    battle.energy += 1;
+    addLog(battle, "마력 환급 — 코스트 1 회복");
+  }
 
   if (wasFirstCard && battle.playerDebuffs.frozen) {
     delete battle.playerDebuffs.frozen;
@@ -589,22 +790,34 @@ export function playCard(run, battle, handIndex) {
     } else {
       battle.charge = {
         card,
-        stage: 1,
+        stage: getStartingChargeStage(run, card),
         targetIndex: battle.selectedEnemyIndex,
+        allIn: battle.playerStatuses.currentCardEndsAtZero,
       };
-      addLog(battle, card.name + " 차징 1단계 (-" + cost + ")");
+
+      addLog(
+        battle,
+        card.name + " 차징 " + battle.charge.stage +
+          "단계 (-" + cost + ")"
+      );
     }
 
+    resolvePostCardMagicBooks(run, battle, card);
+    battle.playerStatuses.currentCardEndsAtZero = false;
+
     if (battle.charge.stage >= card.charge.stages.length) {
-      resolveCharge(battle);
-      checkVictory(battle);
+      resolveCharge(run, battle);
+      checkVictory(run, battle);
     }
     return;
   }
 
   addLog(battle, card.name + " 사용 (-" + cost + ")");
   resolveCardEffects(run, battle, card, enemy);
-  checkVictory(battle);
+  finishAttackCard(battle, card);
+  resolvePostCardMagicBooks(run, battle, card);
+  battle.playerStatuses.currentCardEndsAtZero = false;
+  checkVictory(run, battle);
 }
 
 export function endTurn(run, battle) {
@@ -612,9 +825,18 @@ export function endTurn(run, battle) {
     return;
   }
 
-  resolveCharge(battle);
-  if (checkVictory(battle)) {
+  resolveCharge(run, battle);
+
+  if (checkVictory(run, battle)) {
     return;
+  }
+
+  if (
+    hasMagicBook(run, "catch_breath") &&
+    battle.energy >= 2
+  ) {
+    battle.playerStatuses.nextTurnEnergyBonus = 1;
+    addLog(battle, "숨 고르기 — 다음 턴 코스트 +1");
   }
 
   discardHand(battle);
@@ -628,6 +850,7 @@ export function endTurn(run, battle) {
   }
 
   const enemySnapshot = [...battle.enemies];
+
   for (const enemy of enemySnapshot) {
     resolveEnemyIntent(run, battle, enemy);
 
@@ -638,9 +861,9 @@ export function endTurn(run, battle) {
     }
   }
 
-  if (checkVictory(battle)) {
+  if (checkVictory(run, battle)) {
     return;
   }
 
-  startPlayerTurn(battle);
+  startPlayerTurn(run, battle);
 }
