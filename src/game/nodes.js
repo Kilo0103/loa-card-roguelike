@@ -11,6 +11,11 @@ import {
 } from "../data/magicBooks.js";
 import { shuffle } from "./deck.js";
 import {
+  BOND_MATERIAL_LABELS,
+  BOND_MATERIAL_SHOP_OFFERS,
+  grantBondMaterial,
+} from "./bond.js";
+import {
   addPotion,
   getPotion,
   MAX_POTIONS,
@@ -107,6 +112,14 @@ export function createShop(run) {
       price: CARD_REMOVE_PRICE,
       used: false,
     },
+    bondMaterialItems: BOND_MATERIAL_SHOP_OFFERS.map(function materialItem(offer) {
+      return {
+        material: offer.material,
+        amount: offer.amount,
+        price: offer.price,
+        sold: false,
+      };
+    }),
   };
 }
 
@@ -229,6 +242,41 @@ export function removeShopDeckCard(run, shop, deckIndex) {
   return {
     success: true,
     message: getCard(cardId).name + " 제거 완료",
+  };
+}
+
+export function buyShopBondMaterial(run, shop, itemIndex) {
+  const item = shop.bondMaterialItems[itemIndex];
+
+  if (!item || item.sold) {
+    return {
+      success: false,
+      message: "이미 판매된 결속 재료입니다.",
+    };
+  }
+
+  if (run.gold < item.price) {
+    return {
+      success: false,
+      message: "골드가 부족합니다.",
+    };
+  }
+
+  if (!grantBondMaterial(run, item.material, item.amount)) {
+    return {
+      success: false,
+      message: "결속 재료를 구매할 수 없습니다.",
+    };
+  }
+
+  run.gold -= item.price;
+  item.sold = true;
+
+  return {
+    success: true,
+    message:
+      BOND_MATERIAL_LABELS[item.material] + " +" + item.amount +
+      " 구매 완료",
   };
 }
 
