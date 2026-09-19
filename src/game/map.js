@@ -24,7 +24,7 @@ function randomSeed() {
   return Math.floor(Math.random() * 0xFFFFFFFF) >>> 0;
 }
 
-function shuffle(values, rng) {
+function shuffleWithRng(values, rng) {
   const result = [...values];
 
   for (let index = result.length - 1; index > 0; index -= 1) {
@@ -49,7 +49,7 @@ function createNode(row, column, type, encounterId, label) {
 }
 
 function chooseColumns(count, rng) {
-  return shuffle([0, 1, 2, 3], rng)
+  return shuffleWithRng([0, 1, 2, 3], rng)
     .slice(0, count)
     .sort(function ascending(left, right) {
       return left - right;
