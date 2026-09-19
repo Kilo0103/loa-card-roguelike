@@ -7,6 +7,7 @@ import {
   selectEnemy,
   selectRetainedCard,
   toggleRetainSelectionMode,
+  useBond,
 } from "./game/battle.js";
 import {
   completeCurrentMapNode,
@@ -18,6 +19,7 @@ import {
   buyShopCard,
   buyShopMagicBook,
   buyShopPotion,
+  buyShopBondMaterial,
   createEvent,
   createShop,
   removeShopDeckCard,
@@ -29,6 +31,14 @@ import {
   getMagicBook,
   rollMagicBookDrop,
 } from "./data/magicBooks.js";
+import {
+  awardBondBattleMaterials,
+  ensureBondState,
+  formatBondMaterialRewards,
+  recordBondBattleVictory,
+  selectBond,
+  upgradeBond,
+} from "./game/bond.js";
 import {
   addCardToDeck,
   advanceRun,
@@ -67,6 +77,7 @@ const app = {
   lastMagicBookDrop: null,
   pendingPotionDrop: null,
   rewardRerollUsed: false,
+  pendingBondSelection: false,
   draggedHandIndex: null,
   draggedCardTarget: null,
   dragPreview: null,
@@ -104,6 +115,7 @@ async function loadSaveFile(file) {
     const saveData = parseSaveData(text);
     clearCardDrag();
     restoreAppState(app, saveData);
+    ensureBondState(app.run);
     app.notice = "저장 파일을 불러왔습니다.";
     render(root, app);
   } catch (error) {
@@ -182,6 +194,7 @@ function selectAndEnterNode(nodeId) {
 
 function completeBattleNode() {
   completeCurrentMapNode(app.run.map);
+  recordBondBattleVictory(app.run);
   advanceRun(app.run);
 }
 
@@ -199,10 +212,13 @@ function grantBossMagicBookDrop(nodeType) {
   return acquired ? getMagicBook(bookId) : null;
 }
 
-function openRewards(goldReward) {
+function openRewards(goldReward, bondMaterialNotice) {
   const nodeType = app.battle.mapNodeType;
   const droppedBook = grantBossMagicBookDrop(nodeType);
   app.lastMagicBookDrop = droppedBook;
+  app.pendingBondSelection =
+    app.battle.encounterKey === "midboss:lugaru" &&
+    !ensureBondState(app.run).estherId;
 
   completeBattleNode();
   app.mode = "reward";
@@ -211,11 +227,28 @@ function openRewards(goldReward) {
   app.pendingPotionDrop = rollPotionDrop(app.run, nodeType);
   app.rewardRerollUsed = false;
 
-  app.notice = droppedBook
-    ? droppedBook.name + " 마법서가 드랍되어 획득되었습니다."
-    : "";
+  const notices = [];
+  if (droppedBook) {
+    notices.push(droppedBook.name + " 마법서가 드랍되어 획득되었습니다.");
+  }
+  if (bondMaterialNotice) {
+    notices.push("결속 재료 · " + bondMaterialNotice);
+  }
+  app.notice = notices.join(" ");
+
 
   render(root, app);
+}
+
+function finishPostBattleRewards(notice) {
+  if (app.pendingBondSelection && !ensureBondState(app.run).estherId) {
+    app.mode = "bond-select";
+    app.notice = notice;
+    render(root, app);
+    return;
+  }
+
+  openMap(notice);
 }
 
 function finishCardReward(notice) {
@@ -226,12 +259,18 @@ function finishCardReward(notice) {
     return;
   }
 
-  openMap(notice);
+  finishPostBattleRewards(notice);
 }
 
 function finishBattleAction() {
   if (app.battle.status === "victory") {
     const goldReward = awardBattleGold(app.run, app.battle.mapNodeType);
+    const bondMaterialRewards = awardBondBattleMaterials(
+      app.run,
+      app.battle.mapNodeType,
+      app.battle.encounterKey
+    );
+    const bondMaterialNotice = formatBondMaterialRewards(bondMaterialRewards);
 
     if (app.battle.isFinalBoss) {
       const droppedBook = grantBossMagicBookDrop("boss");
@@ -240,14 +279,19 @@ function finishBattleAction() {
       app.lastGoldReward = goldReward;
       app.pendingPotionDrop = null;
       app.mode = "field-clear";
-      app.notice = droppedBook
-        ? droppedBook.name + " 마법서가 드랍되어 획득되었습니다."
-        : "";
+      const notices = [];
+      if (droppedBook) {
+        notices.push(droppedBook.name + " 마법서가 드랍되어 획득되었습니다.");
+      }
+      if (bondMaterialNotice) {
+        notices.push("결속 재료 · " + bondMaterialNotice);
+      }
+      app.notice = notices.join(" ");
       render(root, app);
       return;
     }
 
-    openRewards(goldReward);
+    openRewards(goldReward, bondMaterialNotice);
     return;
   }
 
@@ -345,6 +389,7 @@ function newRun() {
   app.lastMagicBookDrop = null;
   app.pendingPotionDrop = null;
   app.rewardRerollUsed = false;
+  app.pendingBondSelection = false;
   app.draggedHandIndex = null;
   app.draggedCardTarget = null;
   app.dragPreview = null;
@@ -507,6 +552,13 @@ root.addEventListener("click", function handleClick(event) {
     return;
   }
 
+  if (action === "use-bond") {
+    const result = useBond(app.run, app.battle);
+    app.notice = result.message;
+    finishBattleAction();
+    return;
+  }
+
   if (action === "end-turn") {
     endTurn(app.run, app.battle);
     finishBattleAction();
@@ -545,7 +597,7 @@ root.addEventListener("click", function handleClick(event) {
     const added = addPotion(app.run, app.pendingPotionDrop);
     if (added) {
       app.pendingPotionDrop = null;
-      openMap("물약을 획득했습니다.");
+      finishPostBattleRewards("물약을 획득했습니다.");
     }
     return;
   }
@@ -559,14 +611,14 @@ root.addEventListener("click", function handleClick(event) {
 
     if (replaced) {
       app.pendingPotionDrop = null;
-      openMap("물약을 교체했습니다.");
+      finishPostBattleRewards("물약을 교체했습니다.");
     }
     return;
   }
 
   if (action === "decline-potion") {
     app.pendingPotionDrop = null;
-    openMap("물약을 포기했습니다.");
+    finishPostBattleRewards("물약을 포기했습니다.");
     return;
   }
 
@@ -584,6 +636,35 @@ root.addEventListener("click", function handleClick(event) {
   if (action === "rest-heal") {
     const healed = restAtNode(app.run);
     completeSpecialNode("휴식으로 HP를 " + healed + " 회복했습니다.");
+    return;
+  }
+
+  if (action === "rest-upgrade-bond") {
+    const result = upgradeBond(app.run, "rest");
+    if (result.success) {
+      completeSpecialNode(result.message);
+    } else {
+      app.notice = result.message;
+      render(root, app);
+    }
+    return;
+  }
+
+  if (action === "shop-upgrade-bond") {
+    const result = upgradeBond(app.run, "shop");
+    app.notice = result.message;
+    render(root, app);
+    return;
+  }
+
+  if (action === "buy-shop-bond-material") {
+    const result = buyShopBondMaterial(
+      app.run,
+      app.shop,
+      Number(button.dataset.itemIndex)
+    );
+    app.notice = result.message;
+    render(root, app);
     return;
   }
 
@@ -629,6 +710,15 @@ root.addEventListener("click", function handleClick(event) {
 
   if (action === "leave-shop") {
     completeSpecialNode("상점을 떠났습니다.");
+    return;
+  }
+
+  if (action === "choose-bond") {
+    const selected = selectBond(app.run, button.dataset.estherId);
+    if (selected) {
+      app.pendingBondSelection = false;
+      finishPostBattleRewards("결속 1강을 획득했습니다.");
+    }
     return;
   }
 
