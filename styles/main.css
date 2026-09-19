@@ -2179,3 +2179,331 @@ button:not(:disabled) {
     width: 100%;
   }
 }
+
+
+/* UI-02 — card frame, fanned hand, interaction feedback */
+.battle-hand {
+  position: relative;
+  align-items: flex-end;
+  min-height: 278px;
+  margin-top: 2px;
+  padding: 22px 70px 6px;
+  overflow-x: visible;
+  overflow-y: visible;
+}
+
+.battle-hand .battle-card {
+  --hand-rotate: 0deg;
+  --hand-drop: 0px;
+  --hand-z: 20;
+  position: relative;
+  z-index: var(--hand-z);
+  flex: 0 0 178px;
+  min-height: 246px;
+  margin-left: -32px;
+  padding: 0;
+  border: 0;
+  border-radius: 17px;
+  background: transparent;
+  box-shadow: 0 12px 22px rgba(0, 0, 0, 0.24);
+  transform: translateY(var(--hand-drop)) rotate(var(--hand-rotate));
+  transform-origin: 50% 115%;
+  overflow: visible;
+  transition:
+    transform 150ms ease,
+    filter 150ms ease,
+    opacity 120ms ease;
+}
+
+.battle-hand .battle-card:first-child {
+  margin-left: 0;
+}
+
+.battle-hand .battle-card:not(:disabled):hover,
+.battle-hand .battle-card.card--retain-choice:hover,
+.battle-hand .battle-card.card--setup-choice:hover {
+  z-index: 100 !important;
+  transform: translateY(-26px) rotate(0deg) scale(1.055);
+  filter: brightness(1.08);
+}
+
+.battle-hand .battle-card.card--retained {
+  z-index: 90 !important;
+  transform: translateY(-18px) rotate(0deg);
+}
+
+.battle-hand .battle-card.card--dragging {
+  opacity: 0.12;
+  transform: translateY(-12px) rotate(0deg) scale(0.98);
+}
+
+.card__frame {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-rows: auto 94px 1fr;
+  padding: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 17px;
+  background:
+    linear-gradient(180deg, rgba(39, 44, 57, 0.98), rgba(15, 18, 25, 0.99));
+  box-shadow:
+    inset 0 0 0 2px rgba(255, 255, 255, 0.025),
+    inset 0 -22px 40px rgba(0, 0, 0, 0.18);
+  overflow: hidden;
+}
+
+.card--attack .card__frame {
+  border-color: rgba(191, 95, 107, 0.34);
+  background:
+    linear-gradient(180deg, rgba(65, 34, 43, 0.99), rgba(24, 19, 24, 0.99));
+}
+
+.card--defense .card__frame {
+  border-color: rgba(91, 146, 185, 0.34);
+  background:
+    linear-gradient(180deg, rgba(31, 54, 70, 0.99), rgba(18, 24, 31, 0.99));
+}
+
+.card--skill .card__frame {
+  border-color: rgba(133, 107, 194, 0.34);
+  background:
+    linear-gradient(180deg, rgba(49, 42, 72, 0.99), rgba(23, 21, 31, 0.99));
+}
+
+.card--status .card__frame {
+  border-style: dashed;
+  border-color: rgba(158, 158, 158, 0.3);
+  background:
+    linear-gradient(180deg, rgba(48, 48, 48, 0.99), rgba(21, 21, 21, 0.99));
+}
+
+.battle-card .card__header {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 7px;
+  min-height: 42px;
+}
+
+.battle-card .card__cost {
+  width: 32px;
+  height: 32px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background:
+    radial-gradient(circle at 36% 30%, #a990ff, #7054ca 64%, #49358e);
+  box-shadow: 0 3px 10px rgba(54, 37, 111, 0.35);
+  font-size: 14px;
+}
+
+.card__title-block {
+  min-width: 0;
+  padding-top: 1px;
+}
+
+.battle-card .card__name {
+  overflow: hidden;
+  margin: 0;
+  color: #f4f5f9;
+  font-size: 13px;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.battle-card .card__type {
+  margin-top: 2px;
+  color: #939caf;
+  font-size: 8px;
+  letter-spacing: 0.08em;
+}
+
+.battle-card .card__rarity {
+  padding-top: 3px;
+  font-size: 7px;
+  letter-spacing: 0.08em;
+}
+
+.card__art {
+  position: relative;
+  display: grid;
+  place-items: center;
+  margin: 6px 1px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.075);
+  border-radius: 10px;
+  background:
+    radial-gradient(circle at 50% 38%, rgba(255, 255, 255, 0.07), transparent 24%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.025), rgba(0, 0, 0, 0.18));
+  overflow: hidden;
+}
+
+.card__art::before,
+.card__art::after {
+  content: "";
+  position: absolute;
+  width: 96px;
+  height: 96px;
+  border: 1px solid rgba(255, 255, 255, 0.055);
+  transform: rotate(45deg);
+}
+
+.card__art::after {
+  width: 58px;
+  height: 58px;
+  border-color: rgba(255, 255, 255, 0.07);
+}
+
+.card--attack .card__art {
+  background:
+    radial-gradient(circle at 50% 38%, rgba(196, 78, 92, 0.22), transparent 26%),
+    linear-gradient(145deg, rgba(118, 43, 55, 0.2), rgba(0, 0, 0, 0.2));
+}
+
+.card--defense .card__art {
+  background:
+    radial-gradient(circle at 50% 38%, rgba(79, 144, 190, 0.22), transparent 26%),
+    linear-gradient(145deg, rgba(45, 93, 125, 0.2), rgba(0, 0, 0, 0.2));
+}
+
+.card--skill .card__art {
+  background:
+    radial-gradient(circle at 50% 38%, rgba(129, 96, 207, 0.22), transparent 26%),
+    linear-gradient(145deg, rgba(86, 62, 142, 0.2), rgba(0, 0, 0, 0.2));
+}
+
+.card__art-sigil {
+  position: relative;
+  z-index: 1;
+  color: rgba(236, 239, 248, 0.46);
+  font-size: 17px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+}
+
+.card__body {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 1px 3px 0;
+}
+
+.battle-card .card__body p {
+  display: -webkit-box;
+  margin: 0;
+  overflow: hidden;
+  color: #cbd2de;
+  font-size: 10px;
+  line-height: 1.48;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+}
+
+.battle-card .card__tags {
+  gap: 4px;
+  margin-top: auto;
+  padding-top: 6px;
+  color: #aea0d6;
+  font-size: 8px;
+}
+
+.battle-card .card__tags span {
+  padding: 2px 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.battle-hand .battle-card:disabled {
+  opacity: 0.42;
+  filter: saturate(0.62);
+}
+
+.battle-hand .battle-card:disabled .card__cost {
+  background: #4b4f5a;
+  box-shadow: none;
+}
+
+.battle-hand .battle-card.card--setup-choice,
+.battle-hand .battle-card.card--retain-choice {
+  opacity: 1;
+}
+
+.battle-hand .battle-card.card--setup-choice .card__frame {
+  border-color: rgba(226, 184, 96, 0.62);
+  box-shadow:
+    inset 0 0 0 1px rgba(226, 184, 96, 0.16),
+    0 0 22px rgba(188, 139, 54, 0.12);
+}
+
+.battle-hand .battle-card.card--retain-choice .card__frame,
+.battle-hand .battle-card.card--retained .card__frame {
+  border-color: rgba(198, 167, 255, 0.72);
+  box-shadow:
+    inset 0 0 0 1px rgba(198, 167, 255, 0.16),
+    0 0 24px rgba(138, 109, 225, 0.2);
+}
+
+.card-drag-preview.battle-card {
+  width: 178px;
+  min-height: 246px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.card-drag-preview.battle-card .card__frame {
+  position: absolute;
+  inset: 0;
+}
+
+@media (max-width: 1000px) {
+  .battle-hand {
+    justify-content: flex-start;
+    min-height: 264px;
+    padding-right: 22px;
+    padding-left: 22px;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  .battle-hand .battle-card {
+    flex-basis: 166px;
+    min-height: 232px;
+    margin-left: -20px;
+    transform: translateY(0) rotate(0);
+  }
+
+  .battle-hand .battle-card:first-child {
+    margin-left: 0;
+  }
+
+  .battle-hand .battle-card:not(:disabled):hover {
+    transform: translateY(-12px) rotate(0) scale(1.025);
+  }
+}
+
+@media (max-width: 620px) {
+  .battle-hand {
+    min-height: 238px;
+    padding: 14px 10px 4px;
+  }
+
+  .battle-hand .battle-card {
+    flex: 0 0 148px;
+    min-height: 210px;
+    margin-left: -12px;
+  }
+
+  .card__frame {
+    grid-template-rows: auto 72px 1fr;
+    padding: 8px;
+  }
+
+  .battle-card .card__name {
+    font-size: 11px;
+  }
+
+  .battle-card .card__body p {
+    font-size: 9px;
+    -webkit-line-clamp: 3;
+  }
+}
