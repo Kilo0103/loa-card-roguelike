@@ -756,11 +756,12 @@ function renderBattle(app) {
     : null;
 
   const chargeText = battle.charge
-    ? '<div class="charge-banner battle-alert">차징 중 · ' +
-        battle.charge.card.name + " " +
-        battle.charge.stage + " / " +
-        battle.charge.card.charge.stages.length +
-        "단계 · 같은 카드는 추가 기본 코스트 0</div>"
+    ? '<div class="charge-banner battle-alert">' +
+        '<strong>차징 ' + battle.charge.stage + ' / ' +
+          battle.charge.card.charge.stages.length + '</strong>' +
+        '<span>' + battle.charge.card.name + '</span>' +
+        '<small>같은 카드를 연속 사용하면 단계 상승 · 다른 카드 사용 또는 턴 종료 시 현재 단계로 발사</small>' +
+      '</div>'
     : "";
 
   const bondButton = run.bond && run.bond.estherId
@@ -820,42 +821,43 @@ function renderBattle(app) {
         '<section class="battle-stage">' +
           '<div class="battlefield battle-arena">' +
             '<div class="battlefield__heading battle-arena__heading">' +
-              '<div><span class="eyebrow">BEAST LEGION</span><h1>전장</h1></div>' +
-              "<p>적의 의도를 읽고 카드를 사용하세요.</p>" +
+              '<div><span class="eyebrow">COMBAT</span><h1>전장</h1></div>' +
+              "<p>왼쪽의 워로드로 오른쪽 적을 공략하세요.</p>" +
             "</div>" +
-            '<div class="enemy-grid battle-enemy-line">' +
-              battle.enemies.map(function enemyHtml(enemy, index) {
-                return renderEnemy(battle, enemy, index);
-              }).join("") +
+            '<div class="battle-combat-row">' +
+              '<section class="player-hud player-drop-zone" data-drop-self>' +
+                '<div class="player-hud__identity">' +
+                  '<span class="player-hud__class">WARLORD</span>' +
+                  '<div class="player-hud__avatar">W</div>' +
+                  '<div class="player-hud__name">' +
+                    "<strong>워로드</strong>" +
+                    "<small>내 캐릭터</small>" +
+                  "</div>" +
+                "</div>" +
+                '<div class="player-hud__vitals">' +
+                  '<div class="player-hud__vital-row">' +
+                    '<span>HP</span>' +
+                    '<div class="player-hp-meter"><div style="width:' + hpPercent + '%"></div></div>' +
+                    "<strong>" + run.hp + " / " + run.maxHp + "</strong>" +
+                  "</div>" +
+                  '<div class="player-hud__secondary">' +
+                    '<span class="player-block-badge">보호막 <strong>' + battle.playerBlock + "</strong></span>" +
+                    renderPlayerDebuffs(battle) +
+                  "</div>" +
+                "</div>" +
+                '<div class="player-energy">' +
+                  '<span>코스트</span>' +
+                  "<strong>" + battle.energy + "</strong>" +
+                  "<small>/ " + getPlayerMaxEnergy(run) + "</small>" +
+                "</div>" +
+              "</section>" +
+              '<div class="enemy-grid battle-enemy-line">' +
+                battle.enemies.map(function enemyHtml(enemy, index) {
+                  return renderEnemy(battle, enemy, index);
+                }).join("") +
+              "</div>" +
             "</div>" +
           "</div>" +
-
-          '<section class="player-hud player-drop-zone" data-drop-self>' +
-            '<div class="player-hud__identity">' +
-              '<span class="player-hud__class">WARLORD</span>' +
-              '<div class="player-hud__avatar">W</div>' +
-              '<div class="player-hud__name">' +
-                "<strong>워로드</strong>" +
-                "<small>자기 대상 카드를 이 영역으로 드롭</small>" +
-              "</div>" +
-            "</div>" +
-            '<div class="player-hud__vitals">' +
-              '<div class="player-hud__vital-row">' +
-                '<span>HP</span>' +
-                '<div class="player-hp-meter"><div style="width:' + hpPercent + '%"></div></div>' +
-                "<strong>" + run.hp + " / " + run.maxHp + "</strong>" +
-              "</div>" +
-              '<div class="player-hud__secondary">' +
-                '<span class="player-block-badge">보호막 <strong>' + battle.playerBlock + "</strong></span>" +
-                renderPlayerDebuffs(battle) +
-              "</div>" +
-            "</div>" +
-            '<div class="player-energy">' +
-              '<span>코스트</span>' +
-              "<strong>" + battle.energy + "</strong>" +
-              "<small>/ " + getPlayerMaxEnergy(run) + "</small>" +
-            "</div>" +
-          "</section>" +
         "</section>" +
 
         '<section class="battle-resource-row">' +
@@ -865,14 +867,6 @@ function renderBattle(app) {
         "</section>" +
 
         '<section class="combat-command-bar">' +
-          '<div class="combat-command-bar__left">' +
-            '<div class="pile battle-pile"><span>드로우</span><strong>' +
-              battle.drawPile.length + "</strong></div>" +
-            '<div class="pile battle-pile"><span>버림</span><strong>' +
-              battle.discardPile.length + "</strong></div>" +
-            '<div class="pile battle-pile"><span>소멸</span><strong>' +
-              battle.exhaustPile.length + "</strong></div>" +
-          "</div>" +
           '<div class="combat-command-bar__actions">' +
             retainButton +
             bondButton +
