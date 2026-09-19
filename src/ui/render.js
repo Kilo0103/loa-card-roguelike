@@ -365,9 +365,12 @@ function renderMapNode(map, node, availableIds, currentNode) {
       ' data-action="select-map-node"' +
       ' data-node-id="' + node.id + '"' +
       disabled + ">" +
+      '<span class="map-node__halo" aria-hidden="true"></span>' +
       '<span class="map-node__mark">' + MAP_TYPE_MARKS[node.type] + "</span>" +
-      '<span class="map-node__label">' + label + "</span>" +
-      '<span class="map-node__floor">F' + (node.row + 1) + "</span>" +
+      '<span class="map-node__text">' +
+        '<strong class="map-node__label">' + label + "</strong>" +
+        '<small class="map-node__floor">F' + (node.row + 1) + "</small>" +
+      "</span>" +
     "</button>"
   );
 }
@@ -391,34 +394,38 @@ function renderMap(app) {
   );
   const currentNode = getCurrentMapNode(map);
   const height = 80 + (map.rows.length - 1) * 92;
+  const currentFloor = currentNode ? currentNode.row + 1 : 0;
 
   return (
     '<main class="game-shell map-screen">' +
-      '<header class="topbar panel">' +
-        '<div><span class="label">HP</span><strong>' +
-          run.hp + " / " + run.maxHp + "</strong></div>" +
-        '<div><span class="label">골드</span><strong>' +
-          run.gold + "G</strong></div>" +
-        '<div><span class="label">승리</span><strong>' +
-          run.victories + "</strong></div>" +
-        '<div><span class="label">덱</span><strong>' +
-          run.deck.length + "장</strong></div>" +
-        '<div><span class="label">현재 층</span><strong>' +
-          (currentNode ? "F" + (currentNode.row + 1) : "시작") + "</strong></div>" +
+      '<header class="map-run-header">' +
+        '<div class="map-run-header__title">' +
+          '<span class="eyebrow">BEAST LEGION ROUTE</span>' +
+          "<h1>마수군단 진군로</h1>" +
+          '<p>분기된 길을 따라 F18 발탄까지 올라갑니다.</p>' +
+        "</div>" +
+        '<div class="map-run-header__stats">' +
+          '<span><small>HP</small><strong>' + run.hp + " / " + run.maxHp + "</strong></span>" +
+          '<span><small>골드</small><strong>' + run.gold + "G</strong></span>" +
+          '<span><small>승리</small><strong>' + run.victories + "</strong></span>" +
+          '<span><small>현재</small><strong>' + (currentFloor > 0 ? "F" + currentFloor : "START") + "</strong></span>" +
+        "</div>" +
       "</header>" +
 
       renderNotice(app) +
-      renderMagicBookBar(run) +
       renderBondBar(run) +
+      renderMagicBookBar(run) +
 
-      '<section class="map-panel panel">' +
+      '<section class="map-panel map-route-panel">' +
         '<div class="map-panel__header">' +
-          '<div><span class="eyebrow">BEAST LEGION ROUTE</span>' +
-          "<h1>마수군단 진군로</h1></div>" +
-          "<p>밝게 표시된 연결 노드 중 하나를 선택하세요. · Seed " + map.seed + "</p>" +
+          '<div>' +
+            '<span class="eyebrow">ROUTE SELECTION</span>' +
+            "<h2>다음 경로 선택</h2>" +
+          "</div>" +
+          '<p>빛나는 노드만 이동할 수 있습니다. · Seed ' + map.seed + "</p>" +
         "</div>" +
 
-        '<div class="map-legend">' +
+        '<div class="map-legend map-legend--compact">' +
           '<span><i class="legend-mark legend-mark--normal">N</i>전투</span>' +
           '<span><i class="legend-mark legend-mark--elite">E</i>엘리트</span>' +
           '<span><i class="legend-mark legend-mark--event">?</i>이벤트</span>' +
@@ -428,11 +435,13 @@ function renderMap(app) {
           '<span><i class="legend-mark legend-mark--boss">B</i>발탄</span>' +
         "</div>" +
 
-        '<div class="map-canvas" style="height:' + height + 'px">' +
-          renderMapEdges(map) +
-          nodes.map(function mapNodeHtml(node) {
-            return renderMapNode(map, node, availableIds, currentNode);
-          }).join("") +
+        '<div class="map-scroll-frame">' +
+          '<div class="map-canvas map-canvas--route" style="height:' + height + 'px">' +
+            renderMapEdges(map) +
+            nodes.map(function mapNodeHtml(node) {
+              return renderMapNode(map, node, availableIds, currentNode);
+            }).join("") +
+          "</div>" +
         "</div>" +
       "</section>" +
     "</main>"
