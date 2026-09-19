@@ -541,6 +541,9 @@ function renderReward(app) {
         '<p class="eyebrow">전투 승리</p>' +
         "<h1>카드 보상</h1>" +
         "<p>전투 보상 +" + app.lastGoldReward + "G · 현재 " + app.run.gold + "G</p>" +
+        (app.lastMagicBookDrop
+          ? "<p><strong>마법서 드랍 · " + app.lastMagicBookDrop.name + "</strong></p>"
+          : "") +
         "<p>직업 1장, 공통 1장, 랜덤 1장. 한 장을 선택하거나 건너뜁니다.</p>" +
         '<div class="reward-grid">' +
           app.rewards.map(function rewardHtml(cardId, index) {
@@ -696,6 +699,9 @@ function renderFieldClear(app) {
         '<p class="eyebrow">FIELD CLEAR</p>' +
         "<h1>마수군단 클리어</h1>" +
         "<p>마수군단장 발탄을 쓰러뜨렸습니다. +" + app.lastGoldReward + "G · 총 " + app.run.gold + "G</p>" +
+        (app.lastMagicBookDrop
+          ? "<p><strong>마법서 드랍 · " + app.lastMagicBookDrop.name + "</strong></p>"
+          : "") +
         "<p>현재 Vertical Slice의 마지막입니다.</p>" +
         '<button data-action="new-run">새 런 시작</button>' +
       "</section>" +
