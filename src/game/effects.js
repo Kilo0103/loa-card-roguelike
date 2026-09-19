@@ -17,6 +17,37 @@ function addTimedStatus(statuses, type, duration, value) {
   };
 }
 
+function currentIntentList(enemy) {
+  if (enemy.bossPhase === "ghost") {
+    if (enemy.special.immortalStacks > 0) {
+      return enemy.ghostIntents.filter(function availableIntent(intent) {
+        return !intent.requiresNoImmortal;
+      });
+    }
+    return enemy.ghostIntents;
+  }
+
+  return enemy.intents;
+}
+
+function getCurrentIntent(enemy) {
+  const intents = currentIntentList(enemy);
+  return intents[enemy.intentIndex % intents.length];
+}
+
+function removeImmortalStack(battle, enemy, reason) {
+  if (enemy.special.immortalStacks <= 0) {
+    return;
+  }
+
+  enemy.special.immortalStacks -= 1;
+  addLog(
+    battle,
+    enemy.name + " 불멸 1중첩 제거 (" + reason + ") — 남은 " +
+      enemy.special.immortalStacks
+  );
+}
+
 export function dealDamageToEnemy(battle, enemy, rawDamage) {
   if (!enemy || enemy.hp <= 0) {
     return 0;
@@ -24,14 +55,25 @@ export function dealDamageToEnemy(battle, enemy, rawDamage) {
 
   const destruction = enemy.statuses.destruction;
   const bonusPercent = destruction ? destruction.value : 0;
-  const modifiedDamage = Math.ceil(rawDamage * (1 + bonusPercent / 100));
+  const reductionPercent = enemy.special && enemy.special.immortalStacks > 0
+    ? enemy.special.immortalStacks * 15
+    : 0;
+  const netPercent = Math.max(-90, bonusPercent - reductionPercent);
+  const modifiedDamage = Math.max(0, Math.ceil(rawDamage * (1 + netPercent / 100)));
   const absorbed = Math.min(enemy.block, modifiedDamage);
   const hpDamage = modifiedDamage - absorbed;
 
   enemy.block -= absorbed;
   enemy.hp = Math.max(0, enemy.hp - hpDamage);
 
-  const suffix = bonusPercent > 0 ? " (파괴 +" + bonusPercent + "%)" : "";
+  let suffix = "";
+  if (bonusPercent > 0) {
+    suffix += " (파괴 +" + bonusPercent + "%)";
+  }
+  if (reductionPercent > 0) {
+    suffix += " (불멸 -" + reductionPercent + "%)";
+  }
+
   addLog(battle, enemy.name + "에게 " + modifiedDamage + " 피해" + suffix);
   return modifiedDamage;
 }
@@ -85,12 +127,17 @@ function resolveCounter(battle, enemy) {
     return;
   }
 
-  const intent = enemy.intents[enemy.intentIndex % enemy.intents.length];
+  const intent = getCurrentIntent(enemy);
   if (!intent.counterable || enemy.actionCancelled) {
     return;
   }
 
   enemy.actionCancelled = true;
+
+  if (intent.removeImmortalOnCounter) {
+    removeImmortalStack(battle, enemy, "카운터 성공");
+  }
+
   drawCards(battle, 1);
   addLog(battle, enemy.name + " 카운터 성공 — 현재 행동 취소 + 1장 드로우");
 }
