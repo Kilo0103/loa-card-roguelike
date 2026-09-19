@@ -1,4 +1,13 @@
+import { hasMagicBook } from "../data/magicBooks.js";
 import { drawCards } from "./deck.js";
+import {
+  getAttackMultiplier,
+  getBlockGain,
+  getDestructionDuration,
+  getFlatAttackBonus,
+  getStaggerGain,
+  ignoresEnemyShield,
+} from "./magicBookEffects.js";
 
 function addLog(battle, message) {
   battle.log.unshift(message);
@@ -24,6 +33,7 @@ function currentIntentList(enemy) {
         return !intent.requiresNoImmortal;
       });
     }
+
     return enemy.ghostIntents;
   }
 
@@ -48,7 +58,12 @@ function removeImmortalStack(battle, enemy, reason) {
   );
 }
 
-export function dealDamageToEnemy(battle, enemy, rawDamage) {
+export function dealDamageToEnemy(
+  battle,
+  enemy,
+  rawDamage,
+  options = {}
+) {
   if (!enemy || enemy.hp <= 0) {
     return 0;
   }
@@ -59,11 +74,19 @@ export function dealDamageToEnemy(battle, enemy, rawDamage) {
     ? enemy.special.immortalStacks * 15
     : 0;
   const netPercent = Math.max(-90, bonusPercent - reductionPercent);
-  const modifiedDamage = Math.max(0, Math.ceil(rawDamage * (1 + netPercent / 100)));
-  const absorbed = Math.min(enemy.block, modifiedDamage);
+  const modifiedDamage = Math.max(
+    0,
+    Math.ceil(rawDamage * (1 + netPercent / 100))
+  );
+  const absorbed = options.ignoreBlock
+    ? 0
+    : Math.min(enemy.block, modifiedDamage);
   const hpDamage = modifiedDamage - absorbed;
 
-  enemy.block -= absorbed;
+  if (!options.ignoreBlock) {
+    enemy.block -= absorbed;
+  }
+
   enemy.hp = Math.max(0, enemy.hp - hpDamage);
 
   let suffix = "";
@@ -73,18 +96,66 @@ export function dealDamageToEnemy(battle, enemy, rawDamage) {
   if (reductionPercent > 0) {
     suffix += " (불멸 -" + reductionPercent + "%)";
   }
+  if (options.ignoreBlock) {
+    suffix += " [쉴드 관통]";
+  }
 
   addLog(battle, enemy.name + "에게 " + modifiedDamage + " 피해" + suffix);
   return modifiedDamage;
 }
 
-export function applyStagger(battle, enemy, value) {
+function dealCardDamage(
+  run,
+  battle,
+  card,
+  enemy,
+  baseDamage,
+  options = {}
+) {
+  const bonus = getFlatAttackBonus(
+    run,
+    battle,
+    card,
+    enemy,
+    options
+  );
+  const multiplier = getAttackMultiplier(run);
+  const damage = Math.ceil((baseDamage + bonus) * multiplier);
+
+  return dealDamageToEnemy(
+    battle,
+    enemy,
+    damage,
+    {
+      ignoreBlock: ignoresEnemyShield(run),
+    }
+  );
+}
+
+function gainBlock(run, battle, card, baseAmount) {
+  const gained = getBlockGain(run, baseAmount, battle, card);
+  battle.playerBlock += gained;
+  addLog(battle, "보호막 " + gained + " 획득");
+  return gained;
+}
+
+export function applyStagger(
+  battle,
+  enemy,
+  value,
+  run = null,
+  card = null
+) {
   if (!enemy || enemy.maxStagger <= 0 || enemy.staggeredTurns > 0) {
     return;
   }
 
-  enemy.stagger = Math.max(0, enemy.stagger - value);
-  addLog(battle, enemy.name + " 무력화 " + value + " 감소");
+  const actualValue = run && card
+    ? getStaggerGain(run, card, value)
+    : value;
+
+  enemy.stagger = Math.max(0, enemy.stagger - actualValue);
+  addLog(battle, enemy.name + " 무력화 " + actualValue + " 감소");
 
   if (enemy.stagger === 0) {
     enemy.staggeredTurns = 2;
@@ -92,16 +163,33 @@ export function applyStagger(battle, enemy, value) {
   }
 }
 
-export function applyEnemyStatus(battle, enemy, type, duration, value) {
+export function applyEnemyStatus(
+  run,
+  battle,
+  enemy,
+  type,
+  duration,
+  value
+) {
   if (!enemy || enemy.hp <= 0) {
     return;
   }
 
-  addTimedStatus(enemy.statuses, type, duration, value);
+  let actualDuration = duration;
+  if (type === "destruction") {
+    actualDuration = getDestructionDuration(run, duration);
+  }
+
+  addTimedStatus(enemy.statuses, type, actualDuration, value);
 
   if (type === "taunt") {
     if (enemy.tier !== "boss") {
       enemy.actionCancelled = true;
+
+      if (hasMagicBook(run, "counterattack")) {
+        battle.playerStatuses.counterattackReady = true;
+      }
+
       addLog(battle, enemy.name + " 도발 — 현재 행동 취소");
     } else {
       addLog(battle, enemy.name + "은 보스라 도발의 행동 취소에 면역");
@@ -122,14 +210,14 @@ function cleansePlayerDebuff(battle) {
   addLog(battle, key + " 정화");
 }
 
-function resolveCounter(battle, enemy) {
+function resolveCounter(run, battle, enemy) {
   if (!enemy || enemy.hp <= 0 || enemy.staggeredTurns > 0) {
-    return;
+    return false;
   }
 
   const intent = getCurrentIntent(enemy);
   if (!intent.counterable || enemy.actionCancelled) {
-    return;
+    return false;
   }
 
   enemy.actionCancelled = true;
@@ -139,10 +227,22 @@ function resolveCounter(battle, enemy) {
   }
 
   drawCards(battle, 1);
+
+  if (hasMagicBook(run, "opportunity_capture")) {
+    battle.energy += 1;
+    drawCards(battle, 1);
+    addLog(battle, "기회 포착 — 코스트 1 회복 + 1장 추가 드로우");
+  }
+
+  if (hasMagicBook(run, "counterattack")) {
+    battle.playerStatuses.counterattackReady = true;
+  }
+
   addLog(battle, enemy.name + " 카운터 성공 — 현재 행동 취소 + 1장 드로우");
+  return true;
 }
 
-export function resolveCharge(battle) {
+export function resolveCharge(run, battle) {
   if (!battle.charge) {
     return;
   }
@@ -151,11 +251,24 @@ export function resolveCharge(battle) {
   const enemy = battle.enemies[battle.charge.targetIndex];
   const stage = battle.charge.stage;
   const damage = card.charge.stages[stage - 1];
+  const maxCharge = stage >= card.charge.stages.length;
 
   if (enemy && enemy.hp > 0) {
-    dealDamageToEnemy(battle, enemy, damage);
+    dealCardDamage(
+      run,
+      battle,
+      card,
+      enemy,
+      damage,
+      {
+        maxCharge,
+        allIn: Boolean(battle.charge.allIn),
+      }
+    );
+
     if (card.chargeStatus) {
       applyEnemyStatus(
+        run,
         battle,
         enemy,
         card.chargeStatus.type,
@@ -163,11 +276,15 @@ export function resolveCharge(battle) {
         card.chargeStatus.value
       );
     }
+
     addLog(battle, card.name + " " + stage + "단계 발사");
   } else {
     addLog(battle, card.name + " 차징 대상이 없어 취소");
   }
 
+  battle.playerStatuses.firstAttackUsed = true;
+  battle.playerStatuses.counterStanceReady = false;
+  battle.playerStatuses.counterattackReady = false;
   battle.charge = null;
 }
 
@@ -175,14 +292,20 @@ export function resolveCardEffects(run, battle, card, enemy) {
   for (const effect of card.effects) {
     switch (effect.type) {
       case "damage":
-        dealDamageToEnemy(battle, enemy, effect.value);
+        dealCardDamage(
+          run,
+          battle,
+          card,
+          enemy,
+          effect.value,
+          { allIn: battle.playerStatuses.currentCardEndsAtZero }
+        );
         break;
       case "block":
-        battle.playerBlock += effect.value;
-        addLog(battle, "보호막 " + effect.value + " 획득");
+        gainBlock(run, battle, card, effect.value);
         break;
       case "stagger":
-        applyStagger(battle, enemy, effect.value);
+        applyStagger(battle, enemy, effect.value, run, card);
         break;
       case "draw":
         drawCards(battle, effect.value);
@@ -193,16 +316,29 @@ export function resolveCardEffects(run, battle, card, enemy) {
         addLog(battle, "코스트 " + effect.value + " 회복");
         break;
       case "doubleShield": {
-        const gained = battle.playerBlock;
-        battle.playerBlock += gained;
+        const gained = gainBlock(run, battle, card, battle.playerBlock);
         addLog(battle, "철옹성 — 보호막 " + gained + " 추가");
         break;
       }
       case "taunt":
-        applyEnemyStatus(battle, enemy, "taunt", effect.duration, 0);
+        applyEnemyStatus(
+          run,
+          battle,
+          enemy,
+          "taunt",
+          effect.duration,
+          0
+        );
         break;
       case "weakness":
-        applyEnemyStatus(battle, enemy, "weakness", effect.duration, effect.value);
+        applyEnemyStatus(
+          run,
+          battle,
+          enemy,
+          "weakness",
+          effect.duration,
+          effect.value
+        );
         break;
       case "cleanse":
         cleansePlayerDebuff(battle);
@@ -212,8 +348,7 @@ export function resolveCardEffects(run, battle, card, enemy) {
         addLog(battle, "카운터 스피어 준비");
         break;
       case "holdTheLine":
-        battle.playerBlock += 6;
-        addLog(battle, "보호막 6 획득");
+        gainBlock(run, battle, card, 6);
         if (battle.playerBlock >= 15) {
           drawCards(battle, 1);
           addLog(battle, "전선 유지 조건 달성 — 1장 드로우");
@@ -222,17 +357,32 @@ export function resolveCardEffects(run, battle, card, enemy) {
       case "shieldBash": {
         const shield = battle.playerBlock;
         const damage = shield >= 5 ? 6 : 4;
-        dealDamageToEnemy(battle, enemy, damage);
+        dealCardDamage(
+          run,
+          battle,
+          card,
+          enemy,
+          damage,
+          { allIn: battle.playerStatuses.currentCardEndsAtZero }
+        );
+
         if (shield >= 15) {
-          applyStagger(battle, enemy, 1);
+          applyStagger(battle, enemy, 1, run, card);
         }
         break;
       }
       case "shieldCharge": {
         const refund = battle.playerBlock >= 10;
-        dealDamageToEnemy(battle, enemy, 6);
-        battle.playerBlock += 3;
-        addLog(battle, "보호막 3 획득");
+        dealCardDamage(
+          run,
+          battle,
+          card,
+          enemy,
+          6,
+          { allIn: battle.playerStatuses.currentCardEndsAtZero }
+        );
+        gainBlock(run, battle, card, 3);
+
         if (refund) {
           battle.energy += 1;
           addLog(battle, "방패 돌진 조건 달성 — 코스트 1 회복");
@@ -241,24 +391,38 @@ export function resolveCardEffects(run, battle, card, enemy) {
       }
       case "damageByShield": {
         let damage = effect.base;
+
         for (const threshold of effect.thresholds) {
           if (battle.playerBlock >= threshold[0]) {
             damage = threshold[1];
             break;
           }
         }
-        dealDamageToEnemy(battle, enemy, damage);
+
+        dealCardDamage(
+          run,
+          battle,
+          card,
+          enemy,
+          damage,
+          { allIn: battle.playerStatuses.currentCardEndsAtZero }
+        );
         break;
       }
       case "damageIfStaggered":
-        dealDamageToEnemy(
+        dealCardDamage(
+          run,
           battle,
+          card,
           enemy,
-          enemy && enemy.staggeredTurns > 0 ? effect.staggered : effect.normal
+          enemy && enemy.staggeredTurns > 0
+            ? effect.staggered
+            : effect.normal,
+          { allIn: battle.playerStatuses.currentCardEndsAtZero }
         );
         break;
       case "counter":
-        resolveCounter(battle, enemy);
+        resolveCounter(run, battle, enemy);
         break;
       case "chargeDamage":
         break;
