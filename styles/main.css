@@ -1147,3 +1147,37 @@ button:not(:disabled) {
     display: none;
   }
 }
+
+
+/* Magic books */
+.magic-book-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+}
+
+.magic-book-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.magic-book-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 8px;
+  border: 1px solid rgba(220, 190, 111, 0.22);
+  border-radius: 999px;
+  color: #ead99f;
+  background: rgba(93, 72, 29, 0.18);
+  font-size: 10px;
+}
+
+.magic-book-chip b {
+  color: #fff0ae;
+  font-size: 9px;
+}
