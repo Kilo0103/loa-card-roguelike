@@ -108,7 +108,7 @@ function enterSelectedMapNode() {
 
   if (node.type === "event") {
     app.mode = "event";
-    app.event = createEvent();
+    app.event = createEvent(app.run);
     render(root, app);
   }
 }
