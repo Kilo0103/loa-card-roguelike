@@ -770,3 +770,173 @@ button:not(:disabled) {
     width: 720px;
   }
 }
+
+
+.legend-mark--event,
+.map-node--event .map-node__mark {
+  background: #4b4269;
+}
+
+.legend-mark--rest,
+.map-node--rest .map-node__mark {
+  background: #285345;
+}
+
+.legend-mark--shop,
+.map-node--shop .map-node__mark {
+  background: #62522c;
+}
+
+.notice-banner {
+  margin-top: 12px;
+  padding: 11px 14px;
+  border: 1px solid rgba(198, 167, 255, 0.22);
+  border-radius: 12px;
+  color: #d9cffa;
+  background: rgba(96, 72, 145, 0.16);
+  font-size: 13px;
+}
+
+.node-panel {
+  width: min(620px, 100%);
+  padding: 34px;
+  border-radius: 22px;
+  text-align: center;
+}
+
+.node-panel h1 {
+  margin: 6px 0 10px;
+}
+
+.node-panel > p:not(.eyebrow) {
+  color: #aeb7ca;
+  line-height: 1.7;
+}
+
+.node-panel > button,
+.event-choices button,
+.shop-item > button,
+.special-leave {
+  padding: 11px 18px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  color: #fff;
+  background: #6d52c7;
+}
+
+.node-panel > button:disabled,
+.event-choices button:disabled,
+.shop-item > button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.node-stat {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  width: min(340px, 100%);
+  margin: 24px auto;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  color: #aeb7ca;
+}
+
+.special-screen {
+  min-height: 100vh;
+}
+
+.special-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 18px 22px;
+  border-radius: 18px;
+}
+
+.special-header h1 {
+  margin: 3px 0 0;
+}
+
+.special-header > strong {
+  font-size: 22px;
+}
+
+.shop-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 20px;
+}
+
+.shop-item {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.shop-item .card {
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: 250px;
+}
+
+.shop-item > button {
+  width: 100%;
+}
+
+.special-leave {
+  display: block;
+  margin: 22px auto 0;
+  background: #252b38;
+}
+
+.event-panel {
+  text-align: left;
+}
+
+.event-panel h1,
+.event-panel > p {
+  text-align: center;
+}
+
+.event-choices {
+  display: grid;
+  gap: 10px;
+  margin-top: 24px;
+}
+
+.event-choices button {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  text-align: left;
+  background: #252b38;
+}
+
+.event-choices button strong {
+  font-size: 14px;
+}
+
+.event-choices button span {
+  color: #aeb7ca;
+  font-size: 12px;
+}
+
+@media (max-width: 900px) {
+  .shop-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 520px) {
+  .shop-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .node-panel {
+    padding: 24px 18px;
+  }
+}
