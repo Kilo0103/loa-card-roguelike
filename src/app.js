@@ -58,6 +58,7 @@ import {
   restoreAppState,
   stringifySaveData,
 } from "./game/save.js";
+import { getCard } from "./data/cards.js";
 import { render } from "./ui/render.js";
 
 const root = document.querySelector("#app");
@@ -82,6 +83,7 @@ const app = {
   draggedCardTarget: null,
   dragPreview: null,
   dragHandTop: 0,
+  combatResolving: false,
 };
 
 function downloadCurrentSave() {
@@ -272,6 +274,13 @@ function captureBattleFeedbackState() {
     playerBlock: app.battle.playerBlock,
     energy: app.battle.energy,
     bondReady: Boolean(app.run.bond && app.run.bond.ready),
+    charge: app.battle.charge
+      ? {
+          name: app.battle.charge.card.name,
+          stage: app.battle.charge.stage,
+          max: app.battle.charge.card.charge.stages.length,
+        }
+      : null,
     enemies: app.battle.enemies.map(function captureEnemy(enemy) {
       return {
         hp: enemy.hp,
@@ -298,7 +307,97 @@ function createFloatingCombatText(target, text, kind) {
   }, 900);
 }
 
-function applyBattleFeedback(before, source) {
+function animatePlayedCard(cardElement) {
+  if (!cardElement || !cardElement.getBoundingClientRect) {
+    return;
+  }
+
+  const rect = cardElement.getBoundingClientRect();
+  const targetType = cardElement.dataset.cardTarget;
+  const target = targetType === "enemy"
+    ? root.querySelector(".enemy-card--selected:not(:disabled)") ||
+      root.querySelector(".enemy-unit:not(:disabled)")
+    : root.querySelector(".player-hud");
+
+  if (!target) {
+    return;
+  }
+
+  const targetRect = target.getBoundingClientRect();
+  const ghost = cardElement.cloneNode(true);
+  ghost.removeAttribute("data-action");
+  ghost.removeAttribute("draggable");
+  ghost.className += " combat-card-flight";
+  ghost.style.left = rect.left + "px";
+  ghost.style.top = rect.top + "px";
+  ghost.style.width = rect.width + "px";
+  ghost.style.height = rect.height + "px";
+  document.body.appendChild(ghost);
+
+  const dx =
+    targetRect.left + targetRect.width / 2 -
+    (rect.left + rect.width / 2);
+  const dy =
+    targetRect.top + targetRect.height / 2 -
+    (rect.top + rect.height / 2);
+
+  if (ghost.animate) {
+    const flight = ghost.animate(
+      [
+        { transform: "translate(0, 0) scale(1)", opacity: 0.95 },
+        { transform: "translate(" + (dx * 0.58) + "px, " + (dy * 0.58) + "px) scale(.84)", opacity: 1, offset: 0.58 },
+        { transform: "translate(" + dx + "px, " + dy + "px) scale(.54)", opacity: 0 },
+      ],
+      { duration: 260, easing: "cubic-bezier(.2,.82,.25,1)" }
+    );
+    flight.onfinish = function removeGhost() {
+      ghost.remove();
+    };
+  } else {
+    window.setTimeout(function removeGhostFallback() {
+      ghost.remove();
+    }, 280);
+  }
+}
+
+function createCombatCue(text, kind) {
+  const arena = root.querySelector(".battle-arena");
+  if (!arena || !text) {
+    return;
+  }
+
+  const cue = document.createElement("div");
+  cue.className = "combat-cue combat-cue--" + kind;
+  cue.textContent = text;
+  arena.appendChild(cue);
+
+  window.setTimeout(function removeCue() {
+    cue.remove();
+  }, 760);
+}
+
+function resolveBattleFeedback(before, source, cue) {
+  const terminal =
+    app.battle &&
+    (app.battle.status === "victory" || app.battle.status === "defeat");
+
+  if (terminal) {
+    app.combatResolving = true;
+    renderApp();
+    applyBattleFeedback(before, source, cue);
+
+    window.setTimeout(function finishTerminalBattleFeedback() {
+      app.combatResolving = false;
+      finishBattleAction();
+    }, 520);
+    return;
+  }
+
+  finishBattleAction();
+  applyBattleFeedback(before, source, cue);
+}
+
+function applyBattleFeedback(before, source, cue) {
   if (!before || app.mode !== "battle" || !app.battle) {
     return;
   }
@@ -307,6 +406,42 @@ function applyBattleFeedback(before, source) {
 
   window.requestAnimationFrame(function animateBattleFeedback() {
     const playerHud = root.querySelector(".player-hud");
+    const enemyChanged = after.enemies.some(function enemyChangedState(enemyAfter, enemyIndex) {
+      const enemyBefore = before.enemies[enemyIndex];
+      return Boolean(
+        enemyBefore &&
+        (
+          enemyAfter.hp !== enemyBefore.hp ||
+          enemyAfter.block !== enemyBefore.block ||
+          enemyAfter.stagger !== enemyBefore.stagger
+        )
+      );
+    });
+
+    if ((source === "card" || source === "bond") && enemyChanged && playerHud) {
+      playerHud.classList.add("combat-attack--player");
+    }
+
+    if (cue && cue.text) {
+      createCombatCue(cue.text, cue.kind || source);
+    }
+
+    if (
+      source === "card" &&
+      after.charge &&
+      (
+        !before.charge ||
+        after.charge.stage !== before.charge.stage
+      )
+    ) {
+      createCombatCue(
+        "차징 " + after.charge.stage + " / " + after.charge.max + " · " + after.charge.name,
+        "charge"
+      );
+      if (playerHud) {
+        playerHud.classList.add("combat-charge--player");
+      }
+    }
 
     if (playerHud) {
       const hpDelta = after.playerHp - before.playerHp;
@@ -344,6 +479,12 @@ function applyBattleFeedback(before, source) {
 
       if (hpDelta < 0) {
         enemyElement.classList.add("combat-hit--enemy");
+        const impact = document.createElement("span");
+        impact.className = "combat-impact-flash";
+        enemyElement.appendChild(impact);
+        window.setTimeout(function removeImpact() {
+          impact.remove();
+        }, 360);
         createFloatingCombatText(enemyElement, String(hpDelta), "damage");
       }
 
@@ -507,11 +648,19 @@ function playDraggedCard(enemyIndex = null) {
   }
 
   const handIndex = app.draggedHandIndex;
+  const cardId = app.battle.hand[handIndex];
+  const playedCard = getCard(cardId);
+  const cardElement = root.querySelector(
+    '[data-drag-card-index="' + handIndex + '"]'
+  );
   const before = captureBattleFeedbackState();
+  animatePlayedCard(cardElement);
   clearCardDrag();
   playCard(app.run, app.battle, handIndex);
-  finishBattleAction();
-  applyBattleFeedback(before, "card");
+  resolveBattleFeedback(before, "card", {
+    text: playedCard.name,
+    kind: playedCard.type === "attack" ? "attack" : "card",
+  });
 }
 
 function newRun() {
@@ -530,6 +679,7 @@ function newRun() {
   app.draggedCardTarget = null;
   app.dragPreview = null;
   app.dragHandTop = 0;
+  app.combatResolving = false;
   app.mode = "map";
   renderApp();
 }
@@ -659,6 +809,24 @@ root.addEventListener("click", function handleClick(event) {
 
   const action = button.dataset.action;
 
+  if (
+    app.mode === "battle" &&
+    app.combatResolving &&
+    [
+      "select-enemy",
+      "play-card",
+      "use-bond",
+      "end-turn",
+      "use-potion",
+      "escape-battle",
+      "toggle-retain-mode",
+      "select-retain-card",
+      "discard-contingency-card",
+    ].includes(action)
+  ) {
+    return;
+  }
+
   if (action === "select-map-node") {
     selectAndEnterNode(button.dataset.nodeId);
     return;
@@ -671,11 +839,18 @@ root.addEventListener("click", function handleClick(event) {
   }
 
   if (action === "play-card") {
+    if (app.combatResolving) {
+      return;
+    }
+    const handIndex = Number(button.dataset.index);
+    const playedCard = getCard(app.battle.hand[handIndex]);
     const before = captureBattleFeedbackState();
-    button.classList.add("combat-card-use");
-    playCard(app.run, app.battle, Number(button.dataset.index));
-    finishBattleAction();
-    applyBattleFeedback(before, "card");
+    animatePlayedCard(button);
+    playCard(app.run, app.battle, handIndex);
+    resolveBattleFeedback(before, "card", {
+      text: playedCard.name,
+      kind: playedCard.type === "attack" ? "attack" : "card",
+    });
     return;
   }
 
@@ -709,16 +884,20 @@ root.addEventListener("click", function handleClick(event) {
     const before = captureBattleFeedbackState();
     const result = useBond(app.run, app.battle);
     app.notice = result.message;
-    finishBattleAction();
-    applyBattleFeedback(before, "bond");
+    resolveBattleFeedback(before, "bond", {
+      text: result.message || "결속 발동",
+      kind: "bond",
+    });
     return;
   }
 
   if (action === "end-turn") {
     const before = captureBattleFeedbackState();
     endTurn(app.run, app.battle);
-    finishBattleAction();
-    applyBattleFeedback(before, "enemy-turn");
+    resolveBattleFeedback(before, "enemy-turn", {
+      text: "적의 행동",
+      kind: "enemy",
+    });
     return;
   }
 
@@ -788,7 +967,10 @@ root.addEventListener("click", function handleClick(event) {
     );
     app.notice = result.message;
     renderApp();
-    applyBattleFeedback(before, "potion");
+    applyBattleFeedback(before, "potion", {
+      text: result.message || "물약 사용",
+      kind: "potion",
+    });
     return;
   }
 
