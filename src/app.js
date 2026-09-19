@@ -86,6 +86,55 @@ const app = {
   combatResolving: false,
 };
 
+let activeMagicBookTooltip = null;
+
+function hideMagicBookTooltip() {
+  if (activeMagicBookTooltip) {
+    activeMagicBookTooltip.remove();
+    activeMagicBookTooltip = null;
+  }
+}
+
+function showMagicBookTooltip(chip) {
+  if (!chip) {
+    return;
+  }
+
+  hideMagicBookTooltip();
+
+  const tooltip = document.createElement("div");
+  tooltip.className = "magic-book-tooltip";
+  tooltip.setAttribute("role", "tooltip");
+  tooltip.innerHTML =
+    '<div class="magic-book-tooltip__heading">' +
+      '<span>마법서 #' + chip.dataset.bookNumber + '</span>' +
+      '<strong>' + chip.dataset.bookName + '</strong>' +
+    '</div>' +
+    '<p>' + chip.dataset.bookDescription + '</p>';
+
+  document.body.appendChild(tooltip);
+  activeMagicBookTooltip = tooltip;
+
+  const rect = chip.getBoundingClientRect();
+  const tooltipRect = tooltip.getBoundingClientRect();
+  const gap = 9;
+  let left = rect.left + rect.width / 2 - tooltipRect.width / 2;
+  let top = rect.top - tooltipRect.height - gap;
+
+  left = Math.max(8, Math.min(left, window.innerWidth - tooltipRect.width - 8));
+
+  if (top < 8) {
+    top = rect.bottom + gap;
+    tooltip.classList.add("magic-book-tooltip--below");
+  }
+
+  tooltip.style.left = left + "px";
+  tooltip.style.top = Math.min(
+    top,
+    window.innerHeight - tooltipRect.height - 8
+  ) + "px";
+}
+
 function downloadCurrentSave() {
   clearCardDrag();
 
@@ -697,6 +746,90 @@ loadSaveInput.addEventListener("change", function handleSaveFileSelected(event) 
   loadSaveFile(file);
 });
 
+root.addEventListener("pointerover", function handleMagicBookTooltipOver(event) {
+  if (event.pointerType === "touch") {
+    return;
+  }
+
+  const chip = event.target.closest("[data-magic-book-tooltip]");
+  if (!chip) {
+    return;
+  }
+
+  const related = event.relatedTarget;
+  if (related && chip.contains(related)) {
+    return;
+  }
+
+  showMagicBookTooltip(chip);
+});
+
+root.addEventListener("pointerout", function handleMagicBookTooltipOut(event) {
+  const chip = event.target.closest("[data-magic-book-tooltip]");
+  if (!chip) {
+    return;
+  }
+
+  const related = event.relatedTarget;
+  if (related && chip.contains(related)) {
+    return;
+  }
+
+  hideMagicBookTooltip();
+});
+
+root.addEventListener("focusin", function handleMagicBookTooltipFocus(event) {
+  const chip = event.target.closest("[data-magic-book-tooltip]");
+  if (chip) {
+    showMagicBookTooltip(chip);
+  }
+});
+
+root.addEventListener("focusout", function handleMagicBookTooltipBlur(event) {
+  if (event.target.closest("[data-magic-book-tooltip]")) {
+    hideMagicBookTooltip();
+  }
+});
+
+root.addEventListener("click", function handleMagicBookTooltipTap(event) {
+  const chip = event.target.closest("[data-magic-book-tooltip]");
+  if (!chip || !window.matchMedia("(hover: none), (pointer: coarse)").matches) {
+    return;
+  }
+
+  event.preventDefault();
+  event.stopPropagation();
+
+  if (
+    activeMagicBookTooltip &&
+    chip.dataset.tooltipOpen === "true"
+  ) {
+    chip.dataset.tooltipOpen = "false";
+    hideMagicBookTooltip();
+    return;
+  }
+
+  for (const openChip of root.querySelectorAll('[data-magic-book-tooltip][data-tooltip-open="true"]')) {
+    openChip.dataset.tooltipOpen = "false";
+  }
+
+  chip.dataset.tooltipOpen = "true";
+  showMagicBookTooltip(chip);
+});
+
+document.addEventListener("pointerdown", function closeMagicBookTooltipOutside(event) {
+  if (
+    activeMagicBookTooltip &&
+    !event.target.closest("[data-magic-book-tooltip]") &&
+    !event.target.closest(".magic-book-tooltip")
+  ) {
+    for (const openChip of root.querySelectorAll('[data-magic-book-tooltip][data-tooltip-open="true"]')) {
+      openChip.dataset.tooltipOpen = "false";
+    }
+    hideMagicBookTooltip();
+  }
+});
+
 root.addEventListener("pointerdown", function handleTouchCardPointer(event) {
   if (
     app.mode !== "battle" ||
@@ -1118,6 +1251,7 @@ function focusMobileView() {
 
 const originalRender = render;
 function renderApp() {
+  hideMagicBookTooltip();
   originalRender(root, app);
   focusMobileView();
 }
