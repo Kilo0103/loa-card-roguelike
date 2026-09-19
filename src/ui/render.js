@@ -1263,7 +1263,7 @@ function renderFieldClear(app) {
           "</div>" +
           finalBook +
         "</div>" +
-        "<p class="reward-guidance">현재 Vertical Slice의 마지막입니다.</p>" +
+        '<p class="reward-guidance">현재 Vertical Slice의 마지막입니다.</p>' +
         '<button class="reward-primary-button" data-action="new-run">새 런 시작</button>' +
       "</section>" +
     "</main>"
