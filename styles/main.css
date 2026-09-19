@@ -1280,3 +1280,47 @@ button:not(:disabled) {
   border-color: rgba(198, 167, 255, 0.8) !important;
   background: rgba(91, 69, 145, 0.5) !important;
 }
+
+
+/* Portable JSON save controls */
+.save-toolbar {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  z-index: 2000;
+  display: flex;
+  gap: 7px;
+  padding: 7px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  background: rgba(12, 15, 22, 0.86);
+  backdrop-filter: blur(12px);
+}
+
+.save-toolbar button {
+  padding: 8px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 9px;
+  color: #dfe5f2;
+  background: rgba(41, 47, 60, 0.95);
+  font-size: 11px;
+}
+
+.save-toolbar button:hover {
+  border-color: rgba(198, 167, 255, 0.5);
+  background: rgba(72, 58, 103, 0.95);
+}
+
+@media (max-width: 640px) {
+  .save-toolbar {
+    top: auto;
+    right: 8px;
+    bottom: 8px;
+    left: 8px;
+    justify-content: center;
+  }
+
+  .save-toolbar button {
+    flex: 1 1 0;
+  }
+}
