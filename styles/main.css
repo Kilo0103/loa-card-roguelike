@@ -940,3 +940,67 @@ button:not(:disabled) {
     padding: 24px 18px;
   }
 }
+
+
+/* Card drag and drop */
+.card[draggable="true"] {
+  cursor: grab;
+}
+
+.card--dragging {
+  opacity: 0.58;
+  transform: translateY(-14px) scale(1.03);
+  cursor: grabbing;
+}
+
+.player-drop-zone {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin-top: 14px;
+  padding: 12px 16px;
+  border: 1px dashed rgba(255, 255, 255, 0.14);
+  border-radius: 14px;
+  transition:
+    border-color 120ms ease,
+    background 120ms ease,
+    box-shadow 120ms ease;
+}
+
+.player-drop-zone > div {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.player-drop-zone strong {
+  display: block;
+}
+
+.player-drop-zone span,
+.player-drop-zone small {
+  color: #98a2b7;
+  font-size: 11px;
+}
+
+.drop-target--active {
+  border-color: rgba(198, 167, 255, 0.95) !important;
+  background: rgba(89, 66, 135, 0.42) !important;
+  box-shadow: 0 0 28px rgba(138, 109, 225, 0.28);
+}
+
+.enemy-card.drop-target--active {
+  transform: translateY(-5px) scale(1.02);
+}
+
+@media (max-width: 760px) {
+  .player-drop-zone {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .player-drop-zone small {
+    display: none;
+  }
+}
