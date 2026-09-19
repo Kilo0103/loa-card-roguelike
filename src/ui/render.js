@@ -440,6 +440,7 @@ function renderMap(app) {
           '<p>빛나는 노드만 이동할 수 있습니다. · Seed ' + map.seed + "</p>" +
         "</div>" +
 
+        '<div class="map-mobile-hint">지도를 좌우·상하로 움직여 경로를 확인하고 빛나는 노드를 탭하세요.</div>' +
         '<div class="map-legend map-legend--compact">' +
           '<span><i class="legend-mark legend-mark--normal">N</i>전투</span>' +
           '<span><i class="legend-mark legend-mark--elite">E</i>엘리트</span>' +
@@ -807,6 +808,7 @@ function renderBattle(app) {
         renderNotice(app) +
         setupText +
         chargeText +
+        '<div class="mobile-combat-hint">적을 탭해 대상을 고르고 · 카드를 탭해 사용 · 손패는 좌우로 스와이프</div>' +
 
         '<section class="battle-stage">' +
           '<div class="battlefield battle-arena">' +
