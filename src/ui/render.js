@@ -78,24 +78,45 @@ function renderCard(run, battle, cardId, index) {
   const draggable = !contingency && !retainMode && !normalDisabled;
   const costText = card.unplayable ? "—" : String(cost);
   const classes = cardClass(card) +
+    " battle-card" +
     (selectedForRetain ? " card--retained" : "") +
     (contingency ? " card--setup-choice" : "") +
     (retainMode ? " card--retain-choice" : "");
+  const handCenter = (battle.hand.length - 1) / 2;
+  const handDelta = index - handCenter;
+  const rotation = Math.max(-8, Math.min(8, handDelta * 2.4));
+  const drop = Math.min(18, Math.abs(handDelta) * 3.2);
+  const artLabel = card.type === "attack"
+    ? "ATK"
+    : (card.type === "defense"
+      ? "DEF"
+      : (card.type === "status" ? "STS" : "SKL"));
 
   return (
     '<button class="' + classes + '" data-action="' + action + '" data-index="' + index + '"' +
     ' data-drag-card-index="' + index + '"' +
     ' data-card-target="' + card.target + '"' +
+    ' style="--hand-rotate:' + rotation.toFixed(2) + 'deg;--hand-drop:' +
+      drop.toFixed(1) + 'px;--hand-z:' + (20 + index) + '"' +
     (draggable ? ' draggable="true"' : ' draggable="false"') +
     (disabled ? " disabled" : "") + ">" +
-      '<div class="card__header">' +
-        '<span class="card__cost">' + costText + "</span>" +
-        '<span class="card__rarity">' + card.rarity + "</span>" +
+      '<div class="card__frame">' +
+        '<div class="card__header">' +
+          '<span class="card__cost">' + costText + "</span>" +
+          '<div class="card__title-block">' +
+            '<strong class="card__name">' + card.name + "</strong>" +
+            '<span class="card__type">' + card.type + "</span>" +
+          "</div>" +
+          '<span class="card__rarity">' + card.rarity + "</span>" +
+        "</div>" +
+        '<div class="card__art" aria-hidden="true">' +
+          '<span class="card__art-sigil">' + artLabel + "</span>" +
+        "</div>" +
+        '<div class="card__body">' +
+          "<p>" + card.description + "</p>" +
+          renderTags(card) +
+        "</div>" +
       "</div>" +
-      '<strong class="card__name">' + card.name + "</strong>" +
-      '<span class="card__type">' + card.type + "</span>" +
-      "<p>" + card.description + "</p>" +
-      renderTags(card) +
     "</button>"
   );
 }
