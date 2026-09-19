@@ -892,18 +892,37 @@ function renderRest(app) {
   const actualHeal = Math.min(healAmount, run.maxHp - run.hp);
 
   return (
-    '<main class="center-screen rest-screen">' +
-      '<div class="rest-layout">' +
-        '<section class="panel node-panel">' +
-          '<p class="eyebrow">REST</p>' +
+    '<main class="game-shell rest-screen rest-scene">' +
+      '<header class="special-header rest-header">' +
+        '<div>' +
+          '<span class="eyebrow">REST SITE</span>' +
           "<h1>야영지</h1>" +
-          "<p>이번 휴식에서는 체력 회복과 무료 결속 강화 중 하나만 선택할 수 있습니다.</p>" +
-          '<div class="node-stat">현재 HP <strong>' + run.hp + " / " + run.maxHp + "</strong></div>" +
-          '<button data-action="rest-heal">HP 회복 선택 · ' + actualHeal + " 회복</button>" +
-        "</section>" +
-        renderBondBar(run) +
-        renderBondWorkshop(run, "rest") +
-      "</div>" +
+          "<p>이번 휴식에서 하나만 선택할 수 있습니다.</p>" +
+        "</div>" +
+        '<div class="rest-header__hp">' +
+          "<span>현재 HP</span>" +
+          "<strong>" + run.hp + " / " + run.maxHp + "</strong>" +
+        "</div>" +
+      "</header>" +
+      renderNotice(app) +
+      renderBondBar(run) +
+      '<section class="rest-choice-grid">' +
+        '<article class="panel rest-choice-card rest-choice-card--heal">' +
+          '<span class="rest-choice-card__mark">+</span>' +
+          '<span class="eyebrow">RECOVER</span>' +
+          "<h2>휴식</h2>" +
+          "<p>잠시 전투를 멈추고 체력을 회복합니다.</p>" +
+          '<strong class="rest-choice-card__value">HP +' + actualHeal + "</strong>" +
+          '<button data-action="rest-heal"' + (actualHeal <= 0 ? " disabled" : "") + ">" +
+            (actualHeal > 0 ? "HP 회복 선택" : "이미 최대 HP") +
+          "</button>" +
+        "</article>" +
+        '<div class="rest-choice-divider"><span>OR</span></div>' +
+        '<div class="rest-choice-workshop">' +
+          renderBondWorkshop(run, "rest") +
+        "</div>" +
+      "</section>" +
+      '<p class="rest-choice-warning">선택하면 이 휴식 노드는 완료됩니다.</p>' +
     "</main>"
   );
 }
@@ -1056,26 +1075,61 @@ function renderShopBondMaterials(app) {
 
 function renderShop(app) {
   return (
-    '<main class="game-shell special-screen">' +
-      '<header class="special-header panel">' +
-        '<div><span class="eyebrow">SHOP</span><h1>떠돌이 상점</h1></div>' +
-        '<strong>' + app.run.gold + "G</strong>" +
+    '<main class="game-shell special-screen shop-screen">' +
+      '<header class="special-header shop-header">' +
+        '<div>' +
+          '<span class="eyebrow">TRAVELING SHOP</span>' +
+          "<h1>떠돌이 상점</h1>" +
+          "<p>카드와 소모품을 정비하고 결속을 강화할 수 있습니다.</p>" +
+        "</div>" +
+        '<div class="shop-wallet"><span>보유 골드</span><strong>' + app.run.gold + "G</strong></div>" +
       "</header>" +
       renderNotice(app) +
-      '<section class="shop-grid">' +
-        app.shop.items.map(function itemHtml(item, index) {
-          return renderShopItem(app, item, index);
-        }).join("") +
-        renderShopMagicBook(app) +
-        app.shop.potionItems.map(function potionHtml(item, index) {
-          return renderShopPotion(app, item, index);
-        }).join("") +
-      "</section>" +
-      renderCardRemovalService(app) +
       renderBondBar(app.run) +
-      renderShopBondMaterials(app) +
-      renderBondWorkshop(app.run, "shop") +
-      '<button class="secondary-button special-leave" data-action="leave-shop">상점 나가기</button>' +
+
+      '<section class="shop-section">' +
+        '<div class="shop-section__heading">' +
+          '<div><span class="eyebrow">CARDS</span><h2>카드</h2></div>' +
+          "<p>덱에 바로 추가됩니다.</p>" +
+        "</div>" +
+        '<div class="shop-grid shop-grid--cards">' +
+          app.shop.items.map(function itemHtml(item, index) {
+            return renderShopItem(app, item, index);
+          }).join("") +
+        "</div>" +
+      "</section>" +
+
+      '<section class="shop-section">' +
+        '<div class="shop-section__heading">' +
+          '<div><span class="eyebrow">SUPPLIES</span><h2>마법서 · 물약</h2></div>' +
+          "<p>런 전체 효과와 전투 소모품을 구매합니다.</p>" +
+        "</div>" +
+        '<div class="shop-grid shop-grid--supplies">' +
+          renderShopMagicBook(app) +
+          app.shop.potionItems.map(function potionHtml(item, index) {
+            return renderShopPotion(app, item, index);
+          }).join("") +
+        "</div>" +
+      "</section>" +
+
+      '<section class="shop-section shop-section--bond">' +
+        '<div class="shop-section__heading">' +
+          '<div><span class="eyebrow">BOND</span><h2>결속 정비</h2></div>' +
+          "<p>재료를 구매하거나 수수료를 내고 결속을 강화합니다.</p>" +
+        "</div>" +
+        renderShopBondMaterials(app) +
+        renderBondWorkshop(app.run, "shop") +
+      "</section>" +
+
+      '<section class="shop-section">' +
+        '<div class="shop-section__heading">' +
+          '<div><span class="eyebrow">DECK SERVICE</span><h2>덱 정리</h2></div>' +
+          "<p>필요 없는 카드를 제거해 덱을 압축합니다.</p>" +
+        "</div>" +
+        renderCardRemovalService(app) +
+      "</section>" +
+
+      '<button class="secondary-button special-leave shop-leave" data-action="leave-shop">상점 나가기</button>' +
     "</main>"
   );
 }
