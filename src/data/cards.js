@@ -183,6 +183,20 @@ export const CARD_LIBRARY = Object.freeze({
     charge: { stages: [6, 12, 18] },
     effects: [{ type: "chargeDamage" }],
   },
+  rubble: {
+    id: "rubble",
+    name: "잔해",
+    cost: 0,
+    type: "status",
+    rarity: "status",
+    faction: "neutral",
+    tags: ["status"],
+    target: "none",
+    unplayable: true,
+    exhaustOnTurnEnd: true,
+    description: "사용할 수 없습니다. 손패 한 칸을 차지하며 턴 종료 시 소멸합니다.",
+    effects: [],
+  },
 });
 
 export const STARTING_DECK = Object.freeze([
