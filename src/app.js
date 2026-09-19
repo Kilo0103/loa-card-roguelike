@@ -36,6 +36,8 @@ const app = {
   event: null,
   notice: "",
   lastGoldReward: 0,
+  draggedHandIndex: null,
+  draggedCardTarget: null,
 };
 
 function openMap(notice = "") {
@@ -140,6 +142,35 @@ function finishBattleAction() {
   render(root, app);
 }
 
+function clearCardDrag() {
+  app.draggedHandIndex = null;
+  app.draggedCardTarget = null;
+
+  for (const element of root.querySelectorAll(".drop-target--active, .drop-target--invalid, .card--dragging")) {
+    element.classList.remove("drop-target--active", "drop-target--invalid", "card--dragging");
+  }
+}
+
+function playDraggedCard(enemyIndex = null) {
+  if (app.draggedHandIndex === null || app.mode !== "battle") {
+    return;
+  }
+
+  if (app.draggedCardTarget === "enemy") {
+    if (enemyIndex === null) {
+      return;
+    }
+    selectEnemy(app.battle, enemyIndex);
+  } else if (app.draggedCardTarget !== "self") {
+    return;
+  }
+
+  const handIndex = app.draggedHandIndex;
+  clearCardDrag();
+  playCard(app.run, app.battle, handIndex);
+  finishBattleAction();
+}
+
 function newRun() {
   app.run = createRun();
   app.battle = null;
@@ -148,9 +179,89 @@ function newRun() {
   app.event = null;
   app.notice = "";
   app.lastGoldReward = 0;
+  app.draggedHandIndex = null;
+  app.draggedCardTarget = null;
   app.mode = "map";
   render(root, app);
 }
+
+root.addEventListener("dragstart", function handleDragStart(event) {
+  if (app.mode !== "battle") {
+    return;
+  }
+
+  const card = event.target.closest("[data-drag-card-index]");
+  if (!card || card.disabled) {
+    event.preventDefault();
+    return;
+  }
+
+  app.draggedHandIndex = Number(card.dataset.dragCardIndex);
+  app.draggedCardTarget = card.dataset.cardTarget;
+  card.classList.add("card--dragging");
+
+  if (event.dataTransfer) {
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData("text/plain", String(app.draggedHandIndex));
+  }
+});
+
+root.addEventListener("dragover", function handleDragOver(event) {
+  if (app.mode !== "battle" || app.draggedHandIndex === null) {
+    return;
+  }
+
+  const enemyTarget = event.target.closest("[data-drop-enemy-index]");
+  const selfTarget = event.target.closest("[data-drop-self]");
+
+  if (enemyTarget && app.draggedCardTarget === "enemy" && !enemyTarget.disabled) {
+    event.preventDefault();
+    enemyTarget.classList.add("drop-target--active");
+    return;
+  }
+
+  if (selfTarget && app.draggedCardTarget === "self") {
+    event.preventDefault();
+    selfTarget.classList.add("drop-target--active");
+  }
+});
+
+root.addEventListener("dragleave", function handleDragLeave(event) {
+  const dropTarget = event.target.closest("[data-drop-enemy-index], [data-drop-self]");
+  if (!dropTarget) {
+    return;
+  }
+
+  const related = event.relatedTarget;
+  if (related && dropTarget.contains(related)) {
+    return;
+  }
+
+  dropTarget.classList.remove("drop-target--active");
+});
+
+root.addEventListener("drop", function handleDrop(event) {
+  if (app.mode !== "battle" || app.draggedHandIndex === null) {
+    return;
+  }
+
+  const enemyTarget = event.target.closest("[data-drop-enemy-index]");
+  if (enemyTarget && app.draggedCardTarget === "enemy" && !enemyTarget.disabled) {
+    event.preventDefault();
+    playDraggedCard(Number(enemyTarget.dataset.dropEnemyIndex));
+    return;
+  }
+
+  const selfTarget = event.target.closest("[data-drop-self]");
+  if (selfTarget && app.draggedCardTarget === "self") {
+    event.preventDefault();
+    playDraggedCard();
+  }
+});
+
+root.addEventListener("dragend", function handleDragEnd() {
+  clearCardDrag();
+});
 
 root.addEventListener("click", function handleClick(event) {
   const button = event.target.closest("[data-action]");
