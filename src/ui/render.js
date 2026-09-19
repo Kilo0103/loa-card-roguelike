@@ -10,6 +10,11 @@ import {
   getCurrentMapNode,
 } from "../game/map.js";
 import { canChooseEventOption } from "../game/nodes.js";
+import {
+  canUsePotion,
+  getPotion,
+  MAX_POTIONS,
+} from "../game/potions.js";
 
 const STATUS_LABELS = Object.freeze({
   bleed: "출혈",
@@ -347,6 +352,85 @@ function renderMap(app) {
   );
 }
 
+
+function renderPotionInventory(run, battle) {
+  const slots = [];
+
+  for (let index = 0; index < MAX_POTIONS; index += 1) {
+    const potionId = run.potions[index];
+
+    if (!potionId) {
+      slots.push(
+        '<div class="potion-slot potion-slot--empty">' +
+          '<span>빈 슬롯</span>' +
+        "</div>"
+      );
+      continue;
+    }
+
+    const potion = getPotion(potionId);
+    const usable = battle ? canUsePotion(run, battle, potionId) : false;
+
+    slots.push(
+      '<button class="potion-slot" data-action="use-potion"' +
+        ' data-inventory-index="' + index + '"' +
+        (usable ? "" : " disabled") +
+        ' title="' + potion.description + '">' +
+        '<strong>' + potion.shortName + "</strong>" +
+        '<span>' + potion.description + "</span>" +
+      "</button>"
+    );
+  }
+
+  return '<div class="potion-bar">' + slots.join("") + "</div>";
+}
+
+function renderPotionReward(app) {
+  const potion = getPotion(app.pendingPotionDrop);
+  const isFull = app.run.potions.length >= MAX_POTIONS;
+
+  let actions = "";
+
+  if (!isFull) {
+    actions +=
+      '<button data-action="take-potion">획득하기</button>';
+  } else {
+    actions +=
+      '<div class="potion-replace-list">' +
+        app.run.potions.map(function replaceOption(potionId, index) {
+          const current = getPotion(potionId);
+          return (
+            '<button data-action="replace-potion" data-inventory-index="' + index + '">' +
+              '<strong>' + current.name + "</strong>" +
+              '<span>이 물약과 교체</span>' +
+            "</button>"
+          );
+        }).join("") +
+      "</div>";
+  }
+
+  actions +=
+    '<button class="secondary-button" data-action="decline-potion">포기하기</button>';
+
+  return (
+    '<main class="center-screen">' +
+      '<section class="panel node-panel potion-reward-panel">' +
+        '<p class="eyebrow">POTION DROP</p>' +
+        "<h1>" + potion.name + "</h1>" +
+        "<p>" + potion.description + "</p>" +
+        '<div class="potion-reward-card">' +
+          '<strong>' + potion.shortName + "</strong>" +
+          '<span>' + potion.description + "</span>" +
+        "</div>" +
+        (isFull
+          ? "<p>물약 슬롯이 가득 찼습니다. 교체할 물약을 선택하거나 포기하세요.</p>"
+          : "<p>현재 물약 " + app.run.potions.length + " / " + MAX_POTIONS + "</p>") +
+        actions +
+      "</section>" +
+    "</main>"
+  );
+}
+
 function renderBattle(app) {
   const run = app.run;
   const battle = app.battle;
@@ -374,6 +458,7 @@ function renderBattle(app) {
       "</header>" +
 
       renderPlayerDebuffs(battle) +
+      renderPotionInventory(run, battle) +
       chargeText +
 
       '<section class="player-drop-zone panel" data-drop-self>' +
@@ -572,6 +657,11 @@ export function render(root, app) {
 
   if (app.mode === "reward") {
     root.innerHTML = renderReward(app);
+    return;
+  }
+
+  if (app.mode === "potion-reward") {
+    root.innerHTML = renderPotionReward(app);
     return;
   }
 
