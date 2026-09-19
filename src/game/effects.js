@@ -285,6 +285,7 @@ export function resolveCharge(run, battle) {
   battle.playerStatuses.firstAttackUsed = true;
   battle.playerStatuses.counterStanceReady = false;
   battle.playerStatuses.counterattackReady = false;
+  battle.playerStatuses.nightmareAttackBonus = false;
   battle.charge = null;
 }
 
