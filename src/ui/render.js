@@ -1195,30 +1195,113 @@ function renderShop(app) {
 function renderEvent(app) {
   const event = app.event;
 
+  function choicePresentation(choice) {
+    const enabled = canChooseEventOption(
+      app.run,
+      event,
+      choice.id
+    );
+
+    let tone = "neutral";
+    let mark = "→";
+    let category = "선택";
+    let unavailableReason = "";
+
+    if (
+      choice.id === "offer_blood" ||
+      choice.id === "read_book"
+    ) {
+      tone = "risk";
+      mark = "!";
+      category = "위험 / 보상";
+    } else if (choice.id === "buy_training") {
+      tone = "trade";
+      mark = "G";
+      category = "거래";
+    } else if (
+      choice.id === "take_gold" ||
+      choice.id === "use_supplies"
+    ) {
+      tone = "reward";
+      mark = "+";
+      category = "획득";
+    } else if (choice.id === "leave") {
+      tone = "leave";
+      mark = "×";
+      category = "떠나기";
+    }
+
+    if (!enabled) {
+      if (event.id === "beast_altar" && choice.id === "offer_blood") {
+        unavailableReason = "HP가 7보다 높아야 합니다.";
+      } else if (
+        event.id === "wandering_mercenary" &&
+        choice.id === "buy_training"
+      ) {
+        unavailableReason = "25G가 필요합니다.";
+      } else if (
+        event.id === "sealed_magic_book" &&
+        choice.id === "read_book"
+      ) {
+        unavailableReason = app.run.hp <= 10
+          ? "HP가 10보다 높아야 합니다."
+          : "현재 획득할 수 없는 마법서입니다.";
+      } else {
+        unavailableReason = "현재 상태에서는 선택할 수 없습니다.";
+      }
+    }
+
+    return {
+      enabled,
+      tone,
+      mark,
+      category,
+      unavailableReason,
+    };
+  }
+
   return (
-    '<main class="center-screen">' +
-      '<section class="panel node-panel event-panel">' +
-        '<p class="eyebrow">EVENT</p>' +
-        "<h1>" + event.title + "</h1>" +
-        "<p>" + event.description + "</p>" +
-        '<div class="event-choices">' +
-          event.choices.map(function choiceHtml(choice) {
-            const enabled = canChooseEventOption(
-              app.run,
-              event,
-              choice.id
-            );
+    '<main class="game-shell event-screen event-scene">' +
+      '<section class="event-stage panel">' +
+        '<header class="event-stage__header">' +
+          '<span class="eyebrow">UNKNOWN ENCOUNTER</span>' +
+          "<h1>" + event.title + "</h1>" +
+          "<p>" + event.description + "</p>" +
+        "</header>" +
+        renderNotice(app) +
+        '<div class="event-run-state">' +
+          '<span><small>HP</small><strong>' + app.run.hp + " / " + app.run.maxHp + "</strong></span>" +
+          '<span><small>골드</small><strong>' + app.run.gold + "G</strong></span>" +
+          '<span><small>덱</small><strong>' + app.run.deck.length + "장</strong></span>" +
+        "</div>" +
+        '<div class="event-divider"><span>CHOICE</span></div>' +
+        '<div class="event-choices event-choice-grid">' +
+          event.choices.map(function choiceHtml(choice, index) {
+            const presentation = choicePresentation(choice);
 
             return (
-              '<button data-action="choose-event" data-choice-id="' + choice.id + '"' +
-                (enabled ? "" : " disabled") + ">" +
-                "<strong>" + choice.label + "</strong>" +
-                "<span>" + choice.detail + "</span>" +
+              '<button class="event-choice-card event-choice-card--' + presentation.tone + '"' +
+                ' data-action="choose-event" data-choice-id="' + choice.id + '"' +
+                (presentation.enabled ? "" : " disabled") + ">" +
+                '<div class="event-choice-card__top">' +
+                  '<span class="event-choice-card__index">0' + (index + 1) + "</span>" +
+                  '<span class="event-choice-card__category">' + presentation.category + "</span>" +
+                "</div>" +
+                '<span class="event-choice-card__mark">' + presentation.mark + "</span>" +
+                '<div class="event-choice-card__copy">' +
+                  "<strong>" + choice.label + "</strong>" +
+                  "<p>" + choice.detail + "</p>" +
+                "</div>" +
+                (presentation.enabled
+                  ? '<span class="event-choice-card__action">이 선택 진행</span>'
+                  : '<span class="event-choice-card__locked">' +
+                      presentation.unavailableReason +
+                    "</span>") +
               "</button>"
             );
           }).join("") +
         "</div>" +
-        renderNotice(app) +
+        '<p class="event-footnote">선택한 결과는 즉시 적용되며 이벤트 노드가 완료됩니다.</p>' +
       "</section>" +
     "</main>"
   );
