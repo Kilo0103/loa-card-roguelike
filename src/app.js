@@ -1,9 +1,12 @@
 import {
   createBattle,
+  discardContingencyCard,
   endTurn,
   escapeBattle,
   playCard,
   selectEnemy,
+  selectRetainedCard,
+  toggleRetainSelectionMode,
 } from "./game/battle.js";
 import {
   completeCurrentMapNode,
@@ -410,6 +413,32 @@ root.addEventListener("click", function handleClick(event) {
   if (action === "play-card") {
     playCard(app.run, app.battle, Number(button.dataset.index));
     finishBattleAction();
+    return;
+  }
+
+  if (action === "discard-contingency-card") {
+    discardContingencyCard(
+      app.run,
+      app.battle,
+      Number(button.dataset.index)
+    );
+    render(root, app);
+    return;
+  }
+
+  if (action === "toggle-retain-mode") {
+    toggleRetainSelectionMode(app.run, app.battle);
+    render(root, app);
+    return;
+  }
+
+  if (action === "select-retain-card") {
+    selectRetainedCard(
+      app.run,
+      app.battle,
+      Number(button.dataset.index)
+    );
+    render(root, app);
     return;
   }
 
