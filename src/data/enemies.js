@@ -57,6 +57,7 @@ export const ENEMY_LIBRARY = Object.freeze({
       { type: "packAttack", value: 4, bonusPerAlly: 1, maxBonus: 3, label: "무리 본능" },
     ],
   },
+
   blood_tracker: {
     id: "blood_tracker",
     name: "핏빛 추적자",
@@ -94,6 +95,70 @@ export const ENEMY_LIBRARY = Object.freeze({
       { type: "summon", enemyId: "hungry_beast", label: "굶주린 마수 소환" },
     ],
   },
+
+  lugaru: {
+    id: "lugaru",
+    name: "통솔자 루가루",
+    tier: "midboss",
+    maxHp: 46,
+    maxStagger: 12,
+    intents: [
+      { type: "attackStatus", value: 5, status: "bleed", duration: 1, statusValue: 2, label: "할퀴기 5 + 출혈" },
+      { type: "multiAttackStatus", value: 3, hits: 2, status: "bleed", duration: 1, statusValue: 2, label: "연속 할퀴기 3×2 + 출혈" },
+      { type: "extendPlayerDebuff", status: "bleed", duration: 1, label: "피의 냄새: 출혈 +1턴" },
+      { type: "conditionalAttack", value: 10, status: "bleed", bonus: 4, label: "포식 급습 10", counterable: true },
+    ],
+  },
+  lucas: {
+    id: "lucas",
+    name: "파괴자 루카스",
+    tier: "midboss",
+    maxHp: 48,
+    maxStagger: 12,
+    intents: [
+      { type: "attackStatus", value: 4, status: "cold", duration: 2, statusValue: 1, label: "냉기 투척 4 + 냉기" },
+      { type: "frostTrap", label: "빙결 덫: 다음 턴 카드 3장 사용 요구" },
+      { type: "delayedBlast", value: 9, label: "폭발 구체: 다음 턴 종료 시 9" },
+      { type: "conditionalAttackAny", value: 7, statuses: ["cold", "frozen"], bonus: 3, label: "파괴의 파동 7" },
+    ],
+  },
+  black_mountain_predator: {
+    id: "black_mountain_predator",
+    name: "검은 산의 포식자",
+    tier: "midboss",
+    maxHp: 52,
+    maxStagger: 14,
+    intents: [
+      { type: "attackStatus", value: 6, status: "bleed", duration: 1, statusValue: 2, label: "붉은 할퀴기 6 + 출혈" },
+      { type: "attackStatus", value: 5, status: "cold", duration: 2, statusValue: 1, label: "푸른 파동 5 + 냉기" },
+      { type: "conditionalAttack", value: 11, status: "bleed", bonus: 3, label: "포식 급습 11", counterable: true },
+      { type: "delayedBlast", value: 8, label: "빙결 구체: 다음 턴 종료 시 8" },
+      { type: "bondCheck", value: 12, block: 8, label: "결속: 다음 턴까지 무력화 요구" },
+    ],
+  },
+
+  valtan: {
+    id: "valtan",
+    name: "마수군단장 발탄",
+    tier: "boss",
+    maxHp: 120,
+    maxStagger: 18,
+    bossPhase: "normal",
+    intents: [
+      { type: "attack", value: 7, label: "도끼 휘두르기 7" },
+      { type: "multiAttack", value: 4, hits: 2, label: "연속 내려치기 4×2" },
+      { type: "multiAttack", value: 3, hits: 3, label: "소용돌이 3×3" },
+      { type: "terrainStrike", value: 9, label: "파괴의 도끼 9 — 지형 붕괴 예고" },
+      { type: "terrainCollapse", value: 5, label: "지형 붕괴 5 + 잔해" },
+      { type: "attack", value: 13, label: "광폭 돌진 13", counterable: true },
+    ],
+    ghostIntents: [
+      { type: "attack", value: 12, label: "유령 돌진 12", counterable: true, removeImmortalAfter: true, removeImmortalOnCounter: true },
+      { type: "attack", value: 8, label: "유령 휘두르기 8" },
+      { type: "attack", value: 5, label: "영혼의 포효 5 [쉴드 관통]", piercing: true },
+      { type: "multiAttack", value: 4, hits: 3, label: "마지막 발악 4×3", requiresNoImmortal: true },
+    ],
+  },
 });
 
 export const ENCOUNTER_POOL = Object.freeze({
@@ -125,6 +190,13 @@ export const ENCOUNTER_POOL = Object.freeze({
   ],
 });
 
+const TEMPORARY_BOSS_SCHEDULE = Object.freeze({
+  5: ["lugaru"],
+  10: ["lucas"],
+  15: ["black_mountain_predator"],
+  18: ["valtan"],
+});
+
 export function createEnemy(enemyId) {
   const template = ENEMY_LIBRARY[enemyId];
   if (!template) {
@@ -145,6 +217,19 @@ export function createEnemy(enemyId) {
     actionCancelled: false,
     attackBonus: 0,
     statuses: {},
+    bossPhase: template.bossPhase || null,
+    ghostIntents: template.ghostIntents
+      ? template.ghostIntents.map(function copyGhostIntent(intent) {
+          return { ...intent };
+        })
+      : [],
+    special: {
+      delayedBlast: null,
+      frostTrap: false,
+      bondPending: false,
+      collapseCount: 0,
+      immortalStacks: 0,
+    },
     intents: template.intents.map(function copyIntent(intent) {
       return { ...intent };
     }),
@@ -152,17 +237,25 @@ export function createEnemy(enemyId) {
 }
 
 export function getEncounterForBattle(battleNumber) {
+  if (TEMPORARY_BOSS_SCHEDULE[battleNumber]) {
+    return TEMPORARY_BOSS_SCHEDULE[battleNumber];
+  }
+
   if (battleNumber % 4 === 0) {
     const eliteIndex = Math.floor(battleNumber / 4 - 1) % ENCOUNTER_POOL.elite.length;
     return ENCOUNTER_POOL.elite[eliteIndex];
   }
 
   let pool = ENCOUNTER_POOL.early;
-  if (battleNumber >= 7) {
+  if (battleNumber >= 11) {
     pool = ENCOUNTER_POOL.late;
-  } else if (battleNumber >= 4) {
+  } else if (battleNumber >= 6) {
     pool = ENCOUNTER_POOL.mid;
   }
 
   return pool[(battleNumber - 1) % pool.length];
+}
+
+export function isFinalBossEncounter(encounter) {
+  return encounter.length === 1 && encounter[0] === "valtan";
 }
