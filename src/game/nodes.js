@@ -5,7 +5,7 @@ import {
 } from "../data/cards.js";
 import {
   acquireMagicBook,
-  getAvailableMagicBookIds,
+  getAvailableImplementedMagicBookIds,
   getMagicBook,
   hasMagicBook,
 } from "../data/magicBooks.js";
@@ -62,14 +62,12 @@ export function restAtNode(run) {
   return run.hp - previousHp;
 }
 
-export function createShop() {
+export function createShop(run) {
   const classCards = shuffle(CLASS_REWARD_POOL).slice(0, 3);
   const commonCards = shuffle(COMMON_REWARD_POOL).slice(0, 1);
   const cardIds = [...classCards, ...commonCards];
 
-  const availableBooks = getAvailableMagicBookIds({
-    magicBooks: [],
-  });
+  const availableBooks = getAvailableImplementedMagicBookIds(run);
 
   return {
     items: cardIds.map(function shopItem(cardId) {
