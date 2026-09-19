@@ -74,6 +74,11 @@ function ensureSelectedEnemy(battle) {
 
 function tickStatuses(statuses) {
   for (const key of Object.keys(statuses)) {
+    if (statuses[key].justApplied) {
+      delete statuses[key].justApplied;
+      continue;
+    }
+
     statuses[key].duration -= 1;
     if (statuses[key].duration <= 0) {
       delete statuses[key];
@@ -145,10 +150,12 @@ function reflectFirstDebuff(
 
   if (sourceEnemy.statuses[type]) {
     sourceEnemy.statuses[type].duration += duration;
+    sourceEnemy.statuses[type].justApplied = true;
   } else {
     sourceEnemy.statuses[type] = {
       duration,
       value: value || 0,
+      justApplied: true,
     };
   }
 
