@@ -8,6 +8,21 @@ const FIXED_ROWS = Object.freeze({
   17: { type: "boss", encounterId: "valtan", label: "마수군단장 발탄" },
 });
 
+const SEGMENTS = Object.freeze([
+  [0, 3],
+  [5, 8],
+  [10, 13],
+  [15, 16],
+]);
+
+const REGULAR_TYPE_WEIGHTS = Object.freeze([
+  { type: "normal", weight: 50 },
+  { type: "elite", weight: 15 },
+  { type: "event", weight: 15 },
+  { type: "rest", weight: 10 },
+  { type: "shop", weight: 10 },
+]);
+
 function createRng(seed) {
   let state = seed >>> 0;
 
@@ -33,6 +48,22 @@ function shuffleWithRng(values, rng) {
   }
 
   return result;
+}
+
+function weightedType(rng) {
+  const total = REGULAR_TYPE_WEIGHTS.reduce(function addWeight(sum, entry) {
+    return sum + entry.weight;
+  }, 0);
+  let roll = rng() * total;
+
+  for (const entry of REGULAR_TYPE_WEIGHTS) {
+    roll -= entry.weight;
+    if (roll <= 0) {
+      return entry.type;
+    }
+  }
+
+  return "normal";
 }
 
 function createNode(row, column, type, encounterId, label) {
@@ -64,32 +95,112 @@ function isImmediatelyBeforeCheckpoint(row) {
   return row === 3 || row === 8 || row === 13 || row === 16;
 }
 
-function assignRegularTypes(rows, rng) {
+function assignWeightedTypes(rows, rng) {
+  for (let rowIndex = 0; rowIndex < rows.length; rowIndex += 1) {
+    if (FIXED_ROWS[rowIndex]) {
+      continue;
+    }
+
+    for (const node of rows[rowIndex].nodes) {
+      if (rowIndex === 0) {
+        node.type = "normal";
+        continue;
+      }
+
+      let type = weightedType(rng);
+
+      if (type === "elite" && isImmediatelyAfterCheckpoint(rowIndex)) {
+        type = "normal";
+      }
+
+      if (type === "elite" && isImmediatelyBeforeCheckpoint(rowIndex)) {
+        type = rng() < 0.5 ? "rest" : "normal";
+      }
+
+      node.type = type;
+    }
+  }
+}
+
+function segmentNodes(rows, startRow, endRow) {
+  const nodes = [];
+
+  for (let rowIndex = startRow; rowIndex <= endRow; rowIndex += 1) {
+    nodes.push(...rows[rowIndex].nodes);
+  }
+
+  return nodes;
+}
+
+function ensureTypeInSegment(rows, startRow, endRow, type, rng) {
+  const nodes = segmentNodes(rows, startRow, endRow);
+  const alreadyExists = nodes.some(function hasType(node) {
+    return node.type === type;
+  });
+
+  if (alreadyExists) {
+    return;
+  }
+
+  const candidates = nodes.filter(function eligible(node) {
+    if (node.row === 0) {
+      return false;
+    }
+
+    if (type === "shop" && isImmediatelyBeforeCheckpoint(node.row)) {
+      return false;
+    }
+
+    return node.type !== "elite";
+  });
+
+  const fallback = candidates.length > 0 ? candidates : nodes;
+  const target = fallback[Math.floor(rng() * fallback.length)];
+  target.type = type;
+}
+
+function limitEliteDensity(rows, startRow, endRow, rng) {
   let previousRowHadElite = false;
 
-  for (let rowIndex = 0; rowIndex < rows.length; rowIndex += 1) {
-    const row = rows[rowIndex];
-    if (FIXED_ROWS[rowIndex]) {
+  for (let rowIndex = startRow; rowIndex <= endRow; rowIndex += 1) {
+    const elites = rows[rowIndex].nodes.filter(function eliteNode(node) {
+      return node.type === "elite";
+    });
+
+    if (previousRowHadElite) {
+      for (const node of elites) {
+        node.type = rng() < 0.5 ? "normal" : "event";
+      }
       previousRowHadElite = false;
       continue;
     }
 
-    const eliteAllowed =
-      rowIndex > 0 &&
-      !isImmediatelyAfterCheckpoint(rowIndex) &&
-      !isImmediatelyBeforeCheckpoint(rowIndex) &&
-      !previousRowHadElite;
-
-    let eliteColumn = null;
-    if (eliteAllowed && rng() < 0.38) {
-      eliteColumn = row.nodes[Math.floor(rng() * row.nodes.length)].column;
+    if (elites.length > 1) {
+      const keep = elites[Math.floor(rng() * elites.length)];
+      for (const node of elites) {
+        if (node !== keep) {
+          node.type = "normal";
+        }
+      }
     }
 
-    for (const node of row.nodes) {
-      node.type = node.column === eliteColumn ? "elite" : "normal";
-    }
+    previousRowHadElite = rows[rowIndex].nodes.some(function hasElite(node) {
+      return node.type === "elite";
+    });
+  }
+}
 
-    previousRowHadElite = eliteColumn !== null;
+function assignRegularTypes(rows, rng) {
+  assignWeightedTypes(rows, rng);
+
+  for (const segment of SEGMENTS) {
+    const startRow = segment[0];
+    const endRow = segment[1];
+
+    limitEliteDensity(rows, startRow, endRow, rng);
+    ensureTypeInSegment(rows, startRow, endRow, "event", rng);
+    ensureTypeInSegment(rows, startRow, endRow, "rest", rng);
+    ensureTypeInSegment(rows, startRow, endRow, "shop", rng);
   }
 }
 
