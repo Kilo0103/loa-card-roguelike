@@ -447,14 +447,18 @@ function renderMagicBookBar(run) {
 
   return (
     '<div class="magic-book-bar panel">' +
-      '<span class="label">마법서</span>' +
+      '<div class="resource-bar-heading">' +
+        '<span class="label">마법서</span>' +
+        '<strong>' + run.magicBooks.length + "</strong>" +
+      "</div>" +
       '<div class="magic-book-list">' +
         run.magicBooks.map(function bookHtml(bookId) {
           const book = getMagicBook(bookId);
           return (
-            '<span class="magic-book-chip" title="' + book.description + '">' +
+            '<span class="magic-book-chip" title="' +
+              book.name + " · " + book.description + '">' +
               '<b>#' + book.number + "</b>" +
-              book.name +
+              '<span class="magic-book-chip__name">' + book.name + "</span>" +
             "</span>"
           );
         }).join("") +
@@ -476,19 +480,30 @@ function renderBondBar(run) {
 
   const esther = bond.estherId ? getEsther(bond.estherId) : null;
   const charge = bond.ready ? "READY" : bond.completedBattles + " / 2";
+  const firstChargeOn = bond.completedBattles >= 1 || bond.ready;
+  const secondChargeOn = bond.ready;
 
   return (
-    '<div class="bond-bar panel">' +
+    '<div class="bond-bar panel' + (bond.ready ? " bond-bar--ready" : "") + '">' +
       '<div class="bond-bar__identity">' +
         '<span class="label">결속</span>' +
-        '<strong>' + (esther ? esther.name + " " + bond.level + "강" : "미결속") + "</strong>" +
-        (esther ? '<span class="bond-charge">' + charge + "</span>" : "") +
+        '<strong>' + (esther ? esther.name : "미결속") + "</strong>" +
+        (esther ? '<span class="bond-level">' + bond.level + "강</span>" : "") +
       "</div>" +
+      (esther
+        ? '<div class="bond-charge-track" title="전투 승리 2회마다 사용 가능">' +
+            '<span class="bond-charge-dot' + (firstChargeOn ? " is-on" : "") + '"></span>' +
+            '<span class="bond-charge-line' + (secondChargeOn ? " is-on" : "") + '"></span>' +
+            '<span class="bond-charge-dot' + (secondChargeOn ? " is-on" : "") + '"></span>' +
+            '<strong>' + charge + "</strong>" +
+          "</div>"
+        : "") +
       '<div class="bond-materials">' +
         materialEntries.map(function materialChip(key) {
           return (
             '<span title="' + BOND_MATERIAL_LABELS[key] + '">' +
-              BOND_MATERIAL_LABELS[key] + " " + bond.materials[key] +
+              '<b>' + bond.materials[key] + "</b>" +
+              '<small>' + BOND_MATERIAL_LABELS[key] + "</small>" +
             "</span>"
           );
         }).join("") +
@@ -589,7 +604,9 @@ function renderPotionInventory(run, battle) {
     if (!potionId) {
       slots.push(
         '<div class="potion-slot potion-slot--empty">' +
-          '<span>빈 슬롯</span>' +
+          '<span class="potion-slot__key">' + (index + 1) + "</span>" +
+          '<span class="potion-slot__icon">+</span>' +
+          '<small>빈 슬롯</small>' +
         "</div>"
       );
       continue;
@@ -597,19 +614,30 @@ function renderPotionInventory(run, battle) {
 
     const potion = getPotion(potionId);
     const usable = battle ? canUsePotion(run, battle, potionId) : false;
+    const iconText = potion.shortName
+      ? potion.shortName.slice(0, 1)
+      : potion.name.slice(0, 1);
 
     slots.push(
       '<button class="potion-slot" data-action="use-potion"' +
         ' data-inventory-index="' + index + '"' +
         (usable ? "" : " disabled") +
-        ' title="' + potion.description + '">' +
+        ' title="' + potion.name + " · " + potion.description + '">' +
+        '<span class="potion-slot__key">' + (index + 1) + "</span>" +
+        '<span class="potion-slot__icon">' + iconText + "</span>" +
         '<strong>' + potion.shortName + "</strong>" +
-        '<span>' + potion.description + "</span>" +
+        '<small>' + potion.description + "</small>" +
       "</button>"
     );
   }
 
-  return '<div class="potion-bar">' + slots.join("") + "</div>";
+  return (
+    '<div class="potion-bar">' +
+      '<div class="resource-bar-heading"><span class="label">물약</span><strong>' +
+        run.potions.length + " / " + MAX_POTIONS + "</strong></div>" +
+      '<div class="potion-slots">' + slots.join("") + "</div>" +
+    "</div>"
+  );
 }
 
 function renderPotionReward(app) {
