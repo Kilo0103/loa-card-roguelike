@@ -5,6 +5,11 @@ import {
   selectEnemy,
 } from "./game/battle.js";
 import {
+  completeCurrentMapNode,
+  getCurrentMapNode,
+  selectMapNode,
+} from "./game/map.js";
+import {
   addCardToDeck,
   advanceRun,
   createCardRewards,
@@ -15,21 +20,43 @@ import { render } from "./ui/render.js";
 const root = document.querySelector("#app");
 
 const app = {
-  mode: "battle",
+  mode: "map",
   run: createRun(),
   battle: null,
   rewards: [],
 };
 
-function startBattle() {
-  app.mode = "battle";
-  app.battle = createBattle(app.run);
+function openMap() {
+  app.mode = "map";
+  app.battle = null;
   app.rewards = [];
   render(root, app);
 }
 
-function openRewards() {
+function startBattle(nodeId) {
+  const selected = selectMapNode(app.run.map, nodeId);
+  if (!selected) {
+    return;
+  }
+
+  const node = getCurrentMapNode(app.run.map);
+  if (!node) {
+    return;
+  }
+
+  app.mode = "battle";
+  app.battle = createBattle(app.run, node);
+  app.rewards = [];
+  render(root, app);
+}
+
+function completeBattleNode() {
+  completeCurrentMapNode(app.run.map);
   advanceRun(app.run);
+}
+
+function openRewards() {
+  completeBattleNode();
   app.mode = "reward";
   app.rewards = createCardRewards();
   render(root, app);
@@ -38,7 +65,7 @@ function openRewards() {
 function finishBattleAction() {
   if (app.battle.status === "victory") {
     if (app.battle.isFinalBoss) {
-      advanceRun(app.run);
+      completeBattleNode();
       app.mode = "field-clear";
       render(root, app);
       return;
@@ -57,7 +84,10 @@ function finishBattleAction() {
 
 function newRun() {
   app.run = createRun();
-  startBattle();
+  app.battle = null;
+  app.rewards = [];
+  app.mode = "map";
+  render(root, app);
 }
 
 root.addEventListener("click", function handleClick(event) {
@@ -67,6 +97,11 @@ root.addEventListener("click", function handleClick(event) {
   }
 
   const action = button.dataset.action;
+
+  if (action === "select-map-node") {
+    startBattle(button.dataset.nodeId);
+    return;
+  }
 
   if (action === "select-enemy") {
     selectEnemy(app.battle, Number(button.dataset.enemyIndex));
@@ -88,12 +123,12 @@ root.addEventListener("click", function handleClick(event) {
 
   if (action === "choose-reward") {
     addCardToDeck(app.run, button.dataset.cardId);
-    startBattle();
+    openMap();
     return;
   }
 
   if (action === "skip-reward") {
-    startBattle();
+    openMap();
     return;
   }
 
@@ -102,4 +137,4 @@ root.addEventListener("click", function handleClick(event) {
   }
 });
 
-startBattle();
+render(root, app);
