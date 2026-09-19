@@ -1,126 +1,199 @@
 import { getCard } from "../data/cards.js";
-import { getEnemyIntent } from "../game/battle.js";
+import {
+  getEffectiveCardCost,
+  getEnemyIntent,
+  MAX_ENERGY,
+} from "../game/battle.js";
 
 function cardClass(card) {
-  return `card card--${card.type} card--${card.rarity}`;
+  return "card card--" + card.type + " card--" + card.rarity;
 }
 
-function renderCard(cardId, index, disabled = false) {
-  const card = getCard(cardId);
-  const tags = card.tags.filter((tag) => tag !== "starter" && tag !== "reward");
+function renderTags(card) {
+  const tags = card.tags.filter(function visibleTag(tag) {
+    return tag !== "starter";
+  });
 
-  return `
-    <button class="${cardClass(card)}" data-action="play-card" data-index="${index}" ${disabled ? "disabled" : ""}>
-      <div class="card__header">
-        <span class="card__cost">${card.cost}</span>
-        <span class="card__rarity">${card.rarity}</span>
-      </div>
-      <strong class="card__name">${card.name}</strong>
-      <span class="card__type">${card.type}</span>
-      <p>${card.description}</p>
-      ${tags.length > 0 ? `<div class="card__tags">${tags.map((tag) => `<span>#${tag}</span>`).join("")}</div>` : ""}
-    </button>
-  `;
+  if (tags.length === 0) {
+    return "";
+  }
+
+  return '<div class="card__tags">' +
+    tags.map(function tagHtml(tag) {
+      return "<span>#" + tag + "</span>";
+    }).join("") +
+    "</div>";
 }
 
-function renderRewardCard(cardId) {
+function renderCard(battle, cardId, index) {
   const card = getCard(cardId);
-  return `
-    <button class="${cardClass(card)} reward-card" data-action="choose-reward" data-card-id="${cardId}">
-      <div class="card__header">
-        <span class="card__cost">${card.cost}</span>
-        <span class="card__rarity">${card.rarity}</span>
-      </div>
-      <strong class="card__name">${card.name}</strong>
-      <span class="card__type">${card.type}</span>
-      <p>${card.description}</p>
-    </button>
-  `;
+  const cost = getEffectiveCardCost(battle, card);
+  const disabled = cost > battle.energy;
+
+  return (
+    '<button class="' + cardClass(card) + '" data-action="play-card" data-index="' + index + '"' +
+    (disabled ? " disabled" : "") + ">" +
+      '<div class="card__header">' +
+        '<span class="card__cost">' + cost + "</span>" +
+        '<span class="card__rarity">' + card.rarity + "</span>" +
+      "</div>" +
+      '<strong class="card__name">' + card.name + "</strong>" +
+      '<span class="card__type">' + card.type + "</span>" +
+      "<p>" + card.description + "</p>" +
+      renderTags(card) +
+    "</button>"
+  );
+}
+
+function renderEnemy(battle, enemy, index) {
+  const selected = battle.selectedEnemyIndex === index;
+  const dead = enemy.hp <= 0;
+  const hpPercent = Math.max(0, enemy.hp / enemy.maxHp * 100);
+  const intent = dead ? { label: "처치됨", counterable: false } : getEnemyIntent(battle, enemy);
+  const counter = intent.counterable ? '<span class="counter-tag">카운터 가능</span>' : "";
+
+  let stagger = "";
+  if (enemy.maxStagger > 0) {
+    const staggerPercent = Math.max(0, enemy.stagger / enemy.maxStagger * 100);
+    stagger =
+      '<div class="mini-meter mini-meter--stagger">' +
+        '<div style="width:' + staggerPercent + '%"></div>' +
+      "</div>" +
+      '<span class="enemy-card__sub">무력화 ' + enemy.stagger + " / " + enemy.maxStagger + "</span>";
+  }
+
+  const statusNames = Object.keys(enemy.statuses);
+  const statuses = statusNames.length > 0
+    ? '<div class="enemy-statuses">' +
+        statusNames.map(function statusName(name) {
+          const status = enemy.statuses[name];
+          return "<span>" + name + " " + status.duration + "</span>";
+        }).join("") +
+      "</div>"
+    : "";
+
+  return (
+    '<button class="enemy-card' + (selected ? " enemy-card--selected" : "") + (dead ? " enemy-card--dead" : "") + '"' +
+      ' data-action="select-enemy" data-enemy-index="' + index + '"' + (dead ? " disabled" : "") + ">" +
+      '<div class="enemy-card__top">' +
+        '<span class="enemy-tier">' + enemy.tier + "</span>" +
+        "<strong>" + enemy.name + "</strong>" +
+      "</div>" +
+      '<div class="enemy-intent-inline">' + intent.label + counter + "</div>" +
+      '<div class="mini-meter"><div style="width:' + hpPercent + '%"></div></div>' +
+      '<span class="enemy-card__sub">HP ' + enemy.hp + " / " + enemy.maxHp + " · 보호막 " + enemy.block + "</span>" +
+      stagger +
+      statuses +
+    "</button>"
+  );
+}
+
+function renderRewardCard(cardId, slotLabel) {
+  const card = getCard(cardId);
+
+  return (
+    '<button class="' + cardClass(card) + ' reward-card" data-action="choose-reward" data-card-id="' + cardId + '">' +
+      '<div class="reward-slot">' + slotLabel + "</div>" +
+      '<div class="card__header">' +
+        '<span class="card__cost">' + card.cost + "</span>" +
+        '<span class="card__rarity">' + card.rarity + "</span>" +
+      "</div>" +
+      '<strong class="card__name">' + card.name + "</strong>" +
+      '<span class="card__type">' + card.type + "</span>" +
+      "<p>" + card.description + "</p>" +
+      renderTags(card) +
+    "</button>"
+  );
 }
 
 function renderBattle(app) {
-  const { run, battle } = app;
-  const intent = getEnemyIntent(battle);
-  const hpPercent = Math.max(0, (battle.enemy.hp / battle.enemy.maxHp) * 100);
-  const staggerPercent = Math.max(0, (battle.enemy.stagger / battle.enemy.maxStagger) * 100);
+  const run = app.run;
+  const battle = app.battle;
+  const chargeText = battle.charge
+    ? '<div class="charge-banner">차징 중 · ' + battle.charge.card.name + " " +
+        battle.charge.stage + " / " + battle.charge.card.charge.stages.length +
+        "단계 · 같은 카드는 추가 코스트 0</div>"
+    : "";
 
-  return `
-    <main class="game-shell">
-      <header class="topbar panel">
-        <div><span class="label">HP</span><strong>${run.hp} / ${run.maxHp}</strong></div>
-        <div><span class="label">실드</span><strong>${battle.playerBlock}</strong></div>
-        <div><span class="label">행동력</span><strong>${battle.energy} / 3</strong></div>
-        <div><span class="label">전투</span><strong>#${run.battleNumber}</strong></div>
-        <div><span class="label">덱</span><strong>${run.deck.length}장</strong></div>
-      </header>
+  return (
+    '<main class="game-shell">' +
+      '<header class="topbar panel">' +
+        '<div><span class="label">HP</span><strong>' + run.hp + " / " + run.maxHp + "</strong></div>" +
+        '<div><span class="label">보호막</span><strong>' + battle.playerBlock + "</strong></div>" +
+        '<div><span class="label">코스트</span><strong>' + battle.energy + " / " + MAX_ENERGY + "</strong></div>" +
+        '<div><span class="label">전투</span><strong>#' + run.battleNumber + "</strong></div>" +
+        '<div><span class="label">덱</span><strong>' + run.deck.length + "장</strong></div>" +
+      "</header>" +
 
-      <section class="battlefield panel">
-        <div class="enemy-intent">
-          <span>다음 행동</span>
-          <strong>${intent.label}</strong>
-        </div>
+      chargeText +
 
-        <div class="enemy-portrait" aria-hidden="true">◆</div>
-        <h1>${battle.enemy.name}</h1>
+      '<section class="battlefield panel">' +
+        '<div class="battlefield__heading">' +
+          '<div><span class="eyebrow">BEAST LEGION</span><h1>마수군단</h1></div>' +
+          "<p>공격할 적을 선택하세요. 최대 5마리까지 동시에 등장합니다.</p>" +
+        "</div>" +
+        '<div class="enemy-grid">' +
+          battle.enemies.map(function enemyHtml(enemy, index) {
+            return renderEnemy(battle, enemy, index);
+          }).join("") +
+        "</div>" +
+      "</section>" +
 
-        <div class="meter-group">
-          <div class="meter-row">
-            <span>HP ${battle.enemy.hp} / ${battle.enemy.maxHp}</span>
-            <div class="meter"><div class="meter__fill" style="width:${hpPercent}%"></div></div>
-          </div>
-          <div class="meter-row meter-row--stagger">
-            <span>무력화 ${battle.enemy.stagger} / ${battle.enemy.maxStagger}</span>
-            <div class="meter"><div class="meter__fill" style="width:${staggerPercent}%"></div></div>
-          </div>
-          <div class="enemy-block">적 실드: ${battle.enemy.block}</div>
-        </div>
-      </section>
+      '<section class="combat-info">' +
+        '<div class="pile panel"><span>드로우</span><strong>' + battle.drawPile.length + "</strong></div>" +
+        '<div class="pile panel"><span>버림</span><strong>' + battle.discardPile.length + "</strong></div>" +
+        '<button class="end-turn" data-action="end-turn">턴 종료</button>' +
+      "</section>" +
 
-      <section class="combat-info">
-        <div class="pile panel"><span>드로우</span><strong>${battle.drawPile.length}</strong></div>
-        <div class="pile panel"><span>버림</span><strong>${battle.discardPile.length}</strong></div>
-        <button class="end-turn" data-action="end-turn">턴 종료</button>
-      </section>
+      '<section class="hand" aria-label="손패">' +
+        battle.hand.map(function cardHtml(cardId, index) {
+          return renderCard(battle, cardId, index);
+        }).join("") +
+      "</section>" +
 
-      <section class="hand" aria-label="손패">
-        ${battle.hand.map((cardId, index) => renderCard(cardId, index, getCard(cardId).cost > battle.energy)).join("")}
-      </section>
-
-      <section class="battle-log panel">
-        <h2>전투 로그</h2>
-        <div>${battle.log.map((entry) => `<p>${entry}</p>`).join("")}</div>
-      </section>
-    </main>
-  `;
+      '<section class="battle-log panel">' +
+        "<h2>전투 로그</h2>" +
+        "<div>" +
+          battle.log.map(function logHtml(entry) {
+            return "<p>" + entry + "</p>";
+          }).join("") +
+        "</div>" +
+      "</section>" +
+    "</main>"
+  );
 }
 
 function renderReward(app) {
-  return `
-    <main class="reward-screen game-shell">
-      <section class="panel reward-panel">
-        <p class="eyebrow">전투 승리</p>
-        <h1>카드 보상</h1>
-        <p>한 장을 덱에 추가하거나 보상을 건너뛸 수 있습니다.</p>
-        <div class="reward-grid">
-          ${app.rewards.map((cardId) => renderRewardCard(cardId)).join("")}
-        </div>
-        <button class="secondary-button" data-action="skip-reward">건너뛰기</button>
-      </section>
-    </main>
-  `;
+  const labels = ["직업 카드", "공통 카드", "랜덤"];
+
+  return (
+    '<main class="reward-screen game-shell">' +
+      '<section class="panel reward-panel">' +
+        '<p class="eyebrow">전투 승리</p>' +
+        "<h1>카드 보상</h1>" +
+        "<p>직업 1장, 공통 1장, 랜덤 1장. 한 장을 선택하거나 건너뜁니다.</p>" +
+        '<div class="reward-grid">' +
+          app.rewards.map(function rewardHtml(cardId, index) {
+            return renderRewardCard(cardId, labels[index] || "보상");
+          }).join("") +
+        "</div>" +
+        '<button class="secondary-button" data-action="skip-reward">건너뛰기</button>' +
+      "</section>" +
+    "</main>"
+  );
 }
 
 function renderDefeat(app) {
-  return `
-    <main class="center-screen">
-      <section class="panel result-panel">
-        <p class="eyebrow">RUN END</p>
-        <h1>런 종료</h1>
-        <p>${app.run.victories}승 후 쓰러졌습니다.</p>
-        <button data-action="new-run">새 런 시작</button>
-      </section>
-    </main>
-  `;
+  return (
+    '<main class="center-screen">' +
+      '<section class="panel result-panel">' +
+        '<p class="eyebrow">RUN END</p>' +
+        "<h1>런 종료</h1>" +
+        "<p>" + app.run.victories + "승 후 쓰러졌습니다.</p>" +
+        '<button data-action="new-run">새 런 시작</button>' +
+      "</section>" +
+    "</main>"
+  );
 }
 
 export function render(root, app) {
