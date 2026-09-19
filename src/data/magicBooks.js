@@ -124,19 +124,14 @@ export function getAvailableImplementedMagicBookIds(run) {
   });
 }
 
-export function createMagicBookRewards(run, amount = 3) {
+export function rollMagicBookDrop(run) {
   const available = getAvailableImplementedMagicBookIds(run);
-  const shuffled = [...available];
 
-  for (let index = shuffled.length - 1; index > 0; index -= 1) {
-    const randomIndex = Math.floor(Math.random() * (index + 1));
-    [shuffled[index], shuffled[randomIndex]] = [
-      shuffled[randomIndex],
-      shuffled[index],
-    ];
+  if (available.length === 0) {
+    return null;
   }
 
-  return shuffled.slice(0, amount);
+  return available[Math.floor(Math.random() * available.length)];
 }
 
 
