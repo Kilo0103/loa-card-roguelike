@@ -48,6 +48,7 @@ const app = {
   event: null,
   notice: "",
   lastGoldReward: 0,
+  lastMagicBookDrop: null,
   pendingPotionDrop: null,
   draggedHandIndex: null,
   draggedCardTarget: null,
@@ -143,6 +144,7 @@ function grantBossMagicBookDrop(nodeType) {
 function openRewards(goldReward) {
   const nodeType = app.battle.mapNodeType;
   const droppedBook = grantBossMagicBookDrop(nodeType);
+  app.lastMagicBookDrop = droppedBook;
 
   completeBattleNode();
   app.mode = "reward";
@@ -174,6 +176,7 @@ function finishBattleAction() {
 
     if (app.battle.isFinalBoss) {
       const droppedBook = grantBossMagicBookDrop("boss");
+      app.lastMagicBookDrop = droppedBook;
       completeBattleNode();
       app.lastGoldReward = goldReward;
       app.pendingPotionDrop = null;
@@ -280,6 +283,7 @@ function newRun() {
   app.event = null;
   app.notice = "";
   app.lastGoldReward = 0;
+  app.lastMagicBookDrop = null;
   app.pendingPotionDrop = null;
   app.draggedHandIndex = null;
   app.draggedCardTarget = null;
