@@ -6209,3 +6209,115 @@ button:disabled {
     animation: none !important;
   }
 }
+
+
+/* Magic book effect tooltip */
+.magic-book-chip[data-magic-book-tooltip] {
+  cursor: help;
+  transition:
+    border-color 120ms ease,
+    background 120ms ease,
+    transform 120ms ease;
+}
+
+.magic-book-chip[data-magic-book-tooltip]:hover,
+.magic-book-chip[data-magic-book-tooltip]:focus-visible {
+  border-color: rgba(244, 215, 128, 0.52);
+  background: rgba(112, 86, 34, 0.3);
+  transform: translateY(-1px);
+}
+
+.magic-book-tooltip {
+  position: fixed;
+  z-index: 20000;
+  width: min(320px, calc(100vw - 16px));
+  padding: 12px 13px;
+  border: 1px solid rgba(235, 207, 124, 0.3);
+  border-radius: 12px;
+  color: #e8e2cf;
+  background:
+    radial-gradient(circle at 12% 0%, rgba(177, 138, 57, 0.13), transparent 44%),
+    rgba(18, 18, 21, 0.97);
+  box-shadow: 0 14px 38px rgba(0, 0, 0, 0.48);
+  pointer-events: none;
+  animation: magic-book-tooltip-in 110ms ease-out;
+}
+
+.magic-book-tooltip::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -5px;
+  width: 9px;
+  height: 9px;
+  border-right: 1px solid rgba(235, 207, 124, 0.3);
+  border-bottom: 1px solid rgba(235, 207, 124, 0.3);
+  background: #121215;
+  transform: translateX(-50%) rotate(45deg);
+}
+
+.magic-book-tooltip--below::after {
+  top: -5px;
+  bottom: auto;
+  border: 0;
+  border-top: 1px solid rgba(235, 207, 124, 0.3);
+  border-left: 1px solid rgba(235, 207, 124, 0.3);
+}
+
+.magic-book-tooltip__heading {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  min-width: 0;
+}
+
+.magic-book-tooltip__heading span {
+  flex: 0 0 auto;
+  color: #ad9b68;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.magic-book-tooltip__heading strong {
+  min-width: 0;
+  color: #fff0b9;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+
+.magic-book-tooltip p {
+  margin: 8px 0 0;
+  color: #c9c4b5;
+  font-size: 11px;
+  line-height: 1.55;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+@keyframes magic-book-tooltip-in {
+  from {
+    opacity: 0;
+    transform: translateY(3px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (max-width: 760px) {
+  .magic-book-chip[data-magic-book-tooltip] {
+    cursor: pointer;
+  }
+
+  .magic-book-tooltip {
+    width: min(290px, calc(100vw - 16px));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .magic-book-tooltip {
+    animation: none;
+  }
+}
