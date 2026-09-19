@@ -1181,3 +1181,68 @@ button:not(:disabled) {
   color: #fff0ae;
   font-size: 9px;
 }
+
+
+/* Magic book rewards and shop */
+.magic-book-reward-panel {
+  max-width: 980px;
+}
+
+.magic-book-reward-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.magic-book-choice,
+.magic-book-card {
+  min-height: 220px;
+  padding: 20px;
+  border: 1px solid rgba(220, 190, 111, 0.26);
+  border-radius: 16px;
+  color: #f1e5b4;
+  background:
+    linear-gradient(180deg, rgba(105, 79, 30, 0.26), rgba(30, 27, 20, 0.92));
+  text-align: left;
+}
+
+.magic-book-choice {
+  transition:
+    transform 120ms ease,
+    border-color 120ms ease,
+    box-shadow 120ms ease;
+}
+
+.magic-book-choice:hover {
+  transform: translateY(-5px);
+  border-color: rgba(236, 207, 124, 0.72);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.28);
+}
+
+.magic-book-choice strong,
+.magic-book-card strong {
+  display: block;
+  margin-top: 12px;
+  color: #fff0b9;
+  font-size: 20px;
+}
+
+.magic-book-choice p,
+.magic-book-card p {
+  margin-top: 12px;
+  color: #bbb396;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.shop-item--magic-book .magic-book-card {
+  flex: 1 1 auto;
+  min-height: 250px;
+}
+
+@media (max-width: 760px) {
+  .magic-book-reward-grid {
+    grid-template-columns: 1fr;
+  }
+}
