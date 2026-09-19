@@ -10,6 +10,12 @@ import {
   hasMagicBook,
 } from "../data/magicBooks.js";
 import { shuffle } from "./deck.js";
+import {
+  addPotion,
+  getPotion,
+  MAX_POTIONS,
+  POTION_IDS,
+} from "./potions.js";
 
 const GOLD_REWARDS = Object.freeze({
   normal: 20,
@@ -25,6 +31,8 @@ const CARD_PRICES = Object.freeze({
 });
 
 const MAGIC_BOOK_PRICE = 100;
+const POTION_PRICE = 45;
+const CARD_REMOVE_PRICE = 75;
 
 const EVENT_LIBRARY = Object.freeze([
   "abandoned_supplies",
@@ -69,6 +77,11 @@ export function createShop(run) {
   const cardIds = [...classCards, ...commonCards];
 
   const availableBooks = getAvailableImplementedMagicBookIds(run);
+  const availablePotions = shuffle(
+    POTION_IDS.filter(function potionNotOwned(potionId) {
+      return !run.potions.includes(potionId);
+    })
+  ).slice(0, 2);
 
   return {
     items: cardIds.map(function shopItem(cardId) {
@@ -82,6 +95,17 @@ export function createShop(run) {
       bookId: availableBooks[Math.floor(Math.random() * availableBooks.length)] || null,
       price: MAGIC_BOOK_PRICE,
       sold: false,
+    },
+    potionItems: availablePotions.map(function potionItem(potionId) {
+      return {
+        potionId,
+        price: POTION_PRICE,
+        sold: false,
+      };
+    }),
+    cardRemoval: {
+      price: CARD_REMOVE_PRICE,
+      used: false,
     },
   };
 }
@@ -116,6 +140,95 @@ export function buyShopMagicBook(run, shop) {
   return {
     success: true,
     message: getMagicBook(item.bookId).name + " 구매 완료",
+  };
+}
+
+export function buyShopPotion(run, shop, itemIndex) {
+  const item = shop.potionItems[itemIndex];
+
+  if (!item || item.sold) {
+    return {
+      success: false,
+      message: "이미 판매된 물약입니다.",
+    };
+  }
+
+  if (run.potions.includes(item.potionId)) {
+    return {
+      success: false,
+      message: "동일한 물약은 중복 소지할 수 없습니다.",
+    };
+  }
+
+  if (run.potions.length >= MAX_POTIONS) {
+    return {
+      success: false,
+      message: "물약 슬롯이 가득 찼습니다.",
+    };
+  }
+
+  if (run.gold < item.price) {
+    return {
+      success: false,
+      message: "골드가 부족합니다.",
+    };
+  }
+
+  if (!addPotion(run, item.potionId)) {
+    return {
+      success: false,
+      message: "물약을 구매할 수 없습니다.",
+    };
+  }
+
+  run.gold -= item.price;
+  item.sold = true;
+
+  return {
+    success: true,
+    message: getPotion(item.potionId).name + " 구매 완료",
+  };
+}
+
+export function removeShopDeckCard(run, shop, deckIndex) {
+  const service = shop.cardRemoval;
+
+  if (!service || service.used) {
+    return {
+      success: false,
+      message: "이 상점의 카드 제거 서비스는 이미 사용했습니다.",
+    };
+  }
+
+  if (run.deck.length <= 1) {
+    return {
+      success: false,
+      message: "덱에는 최소 1장의 카드가 남아야 합니다.",
+    };
+  }
+
+  if (deckIndex < 0 || deckIndex >= run.deck.length) {
+    return {
+      success: false,
+      message: "제거할 카드를 찾을 수 없습니다.",
+    };
+  }
+
+  if (run.gold < service.price) {
+    return {
+      success: false,
+      message: "골드가 부족합니다.",
+    };
+  }
+
+  const cardId = run.deck[deckIndex];
+  run.gold -= service.price;
+  run.deck.splice(deckIndex, 1);
+  service.used = true;
+
+  return {
+    success: true,
+    message: getCard(cardId).name + " 제거 완료",
   };
 }
 
