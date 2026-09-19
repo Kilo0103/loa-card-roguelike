@@ -5,6 +5,19 @@ import {
   MAX_ENERGY,
 } from "../game/battle.js";
 
+const STATUS_LABELS = Object.freeze({
+  bleed: "출혈",
+  cold: "냉기",
+  frozen: "빙결",
+  destruction: "파괴",
+  weakness: "약화",
+  taunt: "도발",
+});
+
+function statusLabel(name) {
+  return STATUS_LABELS[name] || name;
+}
+
 function cardClass(card) {
   return "card card--" + card.type + " card--" + card.rarity;
 }
@@ -28,13 +41,14 @@ function renderTags(card) {
 function renderCard(battle, cardId, index) {
   const card = getCard(cardId);
   const cost = getEffectiveCardCost(battle, card);
-  const disabled = cost > battle.energy;
+  const disabled = card.unplayable || cost > battle.energy;
+  const costText = card.unplayable ? "—" : String(cost);
 
   return (
     '<button class="' + cardClass(card) + '" data-action="play-card" data-index="' + index + '"' +
     (disabled ? " disabled" : "") + ">" +
       '<div class="card__header">' +
-        '<span class="card__cost">' + cost + "</span>" +
+        '<span class="card__cost">' + costText + "</span>" +
         '<span class="card__rarity">' + card.rarity + "</span>" +
       "</div>" +
       '<strong class="card__name">' + card.name + "</strong>" +
@@ -45,12 +59,46 @@ function renderCard(battle, cardId, index) {
   );
 }
 
+function renderEnemySpecial(enemy) {
+  const tags = [];
+
+  if (enemy.bossPhase === "ghost") {
+    tags.push("유령 페이즈");
+  }
+  if (enemy.special.immortalStacks > 0) {
+    tags.push("불멸 ×" + enemy.special.immortalStacks);
+  }
+  if (enemy.special.frostTrap) {
+    tags.push("빙결 덫");
+  }
+  if (enemy.special.delayedBlast) {
+    tags.push("지연 폭발 " + enemy.special.delayedBlast.value);
+  }
+  if (enemy.special.bondPending) {
+    tags.push("결속 무력화 체크");
+  }
+
+  if (tags.length === 0) {
+    return "";
+  }
+
+  return '<div class="enemy-statuses enemy-statuses--special">' +
+    tags.map(function specialTag(tag) {
+      return "<span>" + tag + "</span>";
+    }).join("") +
+    "</div>";
+}
+
 function renderEnemy(battle, enemy, index) {
   const selected = battle.selectedEnemyIndex === index;
   const dead = enemy.hp <= 0;
   const hpPercent = Math.max(0, enemy.hp / enemy.maxHp * 100);
-  const intent = dead ? { label: "처치됨", counterable: false } : getEnemyIntent(battle, enemy);
-  const counter = intent.counterable ? '<span class="counter-tag">카운터 가능</span>' : "";
+  const intent = dead
+    ? { label: "처치됨", counterable: false }
+    : getEnemyIntent(battle, enemy);
+  const counter = intent.counterable
+    ? '<span class="counter-tag">카운터 가능</span>'
+    : "";
 
   let stagger = "";
   if (enemy.maxStagger > 0) {
@@ -59,7 +107,8 @@ function renderEnemy(battle, enemy, index) {
       '<div class="mini-meter mini-meter--stagger">' +
         '<div style="width:' + staggerPercent + '%"></div>' +
       "</div>" +
-      '<span class="enemy-card__sub">무력화 ' + enemy.stagger + " / " + enemy.maxStagger + "</span>";
+      '<span class="enemy-card__sub">무력화 ' +
+        enemy.stagger + " / " + enemy.maxStagger + "</span>";
   }
 
   const statusNames = Object.keys(enemy.statuses);
@@ -67,32 +116,53 @@ function renderEnemy(battle, enemy, index) {
     ? '<div class="enemy-statuses">' +
         statusNames.map(function statusName(name) {
           const status = enemy.statuses[name];
-          return "<span>" + name + " " + status.duration + "</span>";
+          return "<span>" + statusLabel(name) + " " + status.duration + "</span>";
         }).join("") +
       "</div>"
     : "";
 
   return (
-    '<button class="enemy-card' + (selected ? " enemy-card--selected" : "") + (dead ? " enemy-card--dead" : "") + '"' +
-      ' data-action="select-enemy" data-enemy-index="' + index + '"' + (dead ? " disabled" : "") + ">" +
+    '<button class="enemy-card' +
+      (selected ? " enemy-card--selected" : "") +
+      (dead ? " enemy-card--dead" : "") + '"' +
+      ' data-action="select-enemy" data-enemy-index="' + index + '"' +
+      (dead ? " disabled" : "") + ">" +
       '<div class="enemy-card__top">' +
         '<span class="enemy-tier">' + enemy.tier + "</span>" +
         "<strong>" + enemy.name + "</strong>" +
       "</div>" +
       '<div class="enemy-intent-inline">' + intent.label + counter + "</div>" +
       '<div class="mini-meter"><div style="width:' + hpPercent + '%"></div></div>' +
-      '<span class="enemy-card__sub">HP ' + enemy.hp + " / " + enemy.maxHp + " · 보호막 " + enemy.block + "</span>" +
+      '<span class="enemy-card__sub">HP ' + enemy.hp + " / " + enemy.maxHp +
+        " · 보호막 " + enemy.block + "</span>" +
       stagger +
       statuses +
+      renderEnemySpecial(enemy) +
     "</button>"
   );
+}
+
+function renderPlayerDebuffs(battle) {
+  const names = Object.keys(battle.playerDebuffs);
+  if (names.length === 0) {
+    return "";
+  }
+
+  return '<section class="player-status-strip panel">' +
+    '<span class="label">상태이상</span>' +
+    names.map(function debuffHtml(name) {
+      const debuff = battle.playerDebuffs[name];
+      return "<strong>" + statusLabel(name) + " " + debuff.duration + "턴</strong>";
+    }).join("") +
+  "</section>";
 }
 
 function renderRewardCard(cardId, slotLabel) {
   const card = getCard(cardId);
 
   return (
-    '<button class="' + cardClass(card) + ' reward-card" data-action="choose-reward" data-card-id="' + cardId + '">' +
+    '<button class="' + cardClass(card) +
+      ' reward-card" data-action="choose-reward" data-card-id="' + cardId + '">' +
       '<div class="reward-slot">' + slotLabel + "</div>" +
       '<div class="card__header">' +
         '<span class="card__cost">' + card.cost + "</span>" +
@@ -110,21 +180,29 @@ function renderBattle(app) {
   const run = app.run;
   const battle = app.battle;
   const chargeText = battle.charge
-    ? '<div class="charge-banner">차징 중 · ' + battle.charge.card.name + " " +
-        battle.charge.stage + " / " + battle.charge.card.charge.stages.length +
-        "단계 · 같은 카드는 추가 코스트 0</div>"
+    ? '<div class="charge-banner">차징 중 · ' +
+        battle.charge.card.name + " " +
+        battle.charge.stage + " / " +
+        battle.charge.card.charge.stages.length +
+        "단계 · 같은 카드는 추가 기본 코스트 0</div>"
     : "";
 
   return (
     '<main class="game-shell">' +
       '<header class="topbar panel">' +
-        '<div><span class="label">HP</span><strong>' + run.hp + " / " + run.maxHp + "</strong></div>" +
-        '<div><span class="label">보호막</span><strong>' + battle.playerBlock + "</strong></div>" +
-        '<div><span class="label">코스트</span><strong>' + battle.energy + " / " + MAX_ENERGY + "</strong></div>" +
-        '<div><span class="label">전투</span><strong>#' + run.battleNumber + "</strong></div>" +
-        '<div><span class="label">덱</span><strong>' + run.deck.length + "장</strong></div>" +
+        '<div><span class="label">HP</span><strong>' +
+          run.hp + " / " + run.maxHp + "</strong></div>" +
+        '<div><span class="label">보호막</span><strong>' +
+          battle.playerBlock + "</strong></div>" +
+        '<div><span class="label">코스트</span><strong>' +
+          battle.energy + " / " + MAX_ENERGY + "</strong></div>" +
+        '<div><span class="label">전투</span><strong>#' +
+          run.battleNumber + "</strong></div>" +
+        '<div><span class="label">덱</span><strong>' +
+          run.deck.length + "장</strong></div>" +
       "</header>" +
 
+      renderPlayerDebuffs(battle) +
       chargeText +
 
       '<section class="battlefield panel">' +
@@ -140,8 +218,10 @@ function renderBattle(app) {
       "</section>" +
 
       '<section class="combat-info">' +
-        '<div class="pile panel"><span>드로우</span><strong>' + battle.drawPile.length + "</strong></div>" +
-        '<div class="pile panel"><span>버림</span><strong>' + battle.discardPile.length + "</strong></div>" +
+        '<div class="pile panel"><span>드로우</span><strong>' +
+          battle.drawPile.length + "</strong></div>" +
+        '<div class="pile panel"><span>버림</span><strong>' +
+          battle.discardPile.length + "</strong></div>" +
         '<button class="end-turn" data-action="end-turn">턴 종료</button>' +
       "</section>" +
 
@@ -196,6 +276,19 @@ function renderDefeat(app) {
   );
 }
 
+function renderFieldClear(app) {
+  return (
+    '<main class="center-screen">' +
+      '<section class="panel result-panel">' +
+        '<p class="eyebrow">FIELD CLEAR</p>' +
+        "<h1>마수군단 클리어</h1>" +
+        "<p>마수군단장 발탄을 쓰러뜨렸습니다. 현재 Vertical Slice의 마지막입니다.</p>" +
+        '<button data-action="new-run">새 런 시작</button>' +
+      "</section>" +
+    "</main>"
+  );
+}
+
 export function render(root, app) {
   if (app.mode === "reward") {
     root.innerHTML = renderReward(app);
@@ -204,6 +297,11 @@ export function render(root, app) {
 
   if (app.mode === "defeat") {
     root.innerHTML = renderDefeat(app);
+    return;
+  }
+
+  if (app.mode === "field-clear") {
+    root.innerHTML = renderFieldClear(app);
     return;
   }
 
