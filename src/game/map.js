@@ -142,6 +142,7 @@ function ensureTypeInSegment(rows, startRow, endRow, type, rng) {
     return;
   }
 
+  const protectedTypes = ["event", "rest", "shop"];
   const candidates = nodes.filter(function eligible(node) {
     if (node.row === 0) {
       return false;
@@ -151,10 +152,19 @@ function ensureTypeInSegment(rows, startRow, endRow, type, rng) {
       return false;
     }
 
-    return node.type !== "elite";
+    return !protectedTypes.includes(node.type) && node.type !== "elite";
   });
 
-  const fallback = candidates.length > 0 ? candidates : nodes;
+  const fallback = candidates.length > 0
+    ? candidates
+    : nodes.filter(function fallbackNode(node) {
+        return node.row !== 0 && !protectedTypes.includes(node.type);
+      });
+
+  if (fallback.length === 0) {
+    return;
+  }
+
   const target = fallback[Math.floor(rng() * fallback.length)];
   target.type = type;
 }
