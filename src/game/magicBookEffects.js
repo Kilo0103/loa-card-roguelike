@@ -36,6 +36,14 @@ export function getCardCostAdjustment(run, battle, card) {
     adjustment -= 1;
   }
 
+  if (
+    hasMagicBook(run, "keen_combat_sense") &&
+    battle.turn > 1 &&
+    !battle.playerStatuses.previousTurnCardTypes.includes(card.type)
+  ) {
+    adjustment -= 1;
+  }
+
   return adjustment;
 }
 
@@ -147,6 +155,13 @@ export function getFlatAttackBonus(run, battle, card, enemy, options = {}) {
     battle.playerStatuses.nightmareAttackBonus
   ) {
     bonus += 4;
+  }
+
+  if (
+    hasMagicBook(run, "adrenaline") &&
+    battle.playerStatuses.adrenalineBonus > 0
+  ) {
+    bonus += battle.playerStatuses.adrenalineBonus;
   }
 
   return bonus;
