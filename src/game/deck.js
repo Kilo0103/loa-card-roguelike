@@ -1,3 +1,5 @@
+import { getCard } from "../data/cards.js";
+
 export function shuffle(cards) {
   const shuffled = [...cards];
 
@@ -26,6 +28,12 @@ export function drawCards(battle, amount) {
 }
 
 export function discardHand(battle) {
-  battle.discardPile.push(...battle.hand);
+  for (const cardId of battle.hand) {
+    const card = getCard(cardId);
+    if (!card.exhaustOnTurnEnd) {
+      battle.discardPile.push(cardId);
+    }
+  }
+
   battle.hand = [];
 }
