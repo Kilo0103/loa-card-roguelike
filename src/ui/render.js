@@ -52,7 +52,9 @@ function renderCard(battle, cardId, index) {
 
   return (
     '<button class="' + cardClass(card) + '" data-action="play-card" data-index="' + index + '"' +
-    (disabled ? " disabled" : "") + ">" +
+    ' data-drag-card-index="' + index + '"' +
+    ' data-card-target="' + card.target + '"' +
+    (disabled ? ' draggable="false" disabled' : ' draggable="true"') + ">" +
       '<div class="card__header">' +
         '<span class="card__cost">' + costText + "</span>" +
         '<span class="card__rarity">' + card.rarity + "</span>" +
@@ -132,6 +134,7 @@ function renderEnemy(battle, enemy, index) {
       (selected ? " enemy-card--selected" : "") +
       (dead ? " enemy-card--dead" : "") + '"' +
       ' data-action="select-enemy" data-enemy-index="' + index + '"' +
+      ' data-drop-enemy-index="' + index + '"' +
       (dead ? " disabled" : "") + ">" +
       '<div class="enemy-card__top">' +
         '<span class="enemy-tier">' + enemy.tier + "</span>" +
@@ -373,10 +376,17 @@ function renderBattle(app) {
       renderPlayerDebuffs(battle) +
       chargeText +
 
+      '<section class="player-drop-zone panel" data-drop-self>' +
+        '<div><span class="eyebrow">WARLORD</span><strong>플레이어</strong></div>' +
+        '<div><span>HP ' + run.hp + " / " + run.maxHp + "</span>" +
+        '<span>보호막 ' + battle.playerBlock + "</span></div>" +
+        '<small>자기 대상 카드를 여기로 드롭</small>' +
+      "</section>" +
+
       '<section class="battlefield panel">' +
         '<div class="battlefield__heading">' +
           '<div><span class="eyebrow">BEAST LEGION</span><h1>마수군단</h1></div>' +
-          "<p>공격할 적을 선택하세요. 최대 5마리까지 동시에 등장합니다.</p>" +
+          "<p>카드를 클릭하거나 원하는 적에게 드래그해서 사용하세요.</p>" +
         "</div>" +
         '<div class="enemy-grid">' +
           battle.enemies.map(function enemyHtml(enemy, index) {
