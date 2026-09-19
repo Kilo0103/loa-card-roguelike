@@ -1,7 +1,6 @@
 import {
   createEnemy,
-  getEncounterForBattle,
-  isFinalBossEncounter,
+  getEncounterForNode,
 } from "../data/enemies.js";
 import { getCard } from "../data/cards.js";
 import { discardHand, drawCards, shuffle } from "./deck.js";
@@ -404,12 +403,17 @@ function selectedEnemy(battle) {
   return battle.enemies[battle.selectedEnemyIndex] || null;
 }
 
-export function createBattle(run) {
-  const encounter = getEncounterForBattle(run.battleNumber);
+export function createBattle(run, mapNode) {
+  const encounterInfo = getEncounterForNode(mapNode, run.lastEncounterKey);
+  run.lastEncounterKey = encounterInfo.key;
+
   const battle = {
-    encounter,
-    isFinalBoss: isFinalBossEncounter(encounter),
-    enemies: encounter.map(function makeEnemy(enemyId) {
+    encounter: encounterInfo.enemies,
+    encounterKey: encounterInfo.key,
+    mapNodeId: mapNode.id,
+    mapNodeType: mapNode.type,
+    isFinalBoss: mapNode.type === "boss",
+    enemies: encounterInfo.enemies.map(function makeEnemy(enemyId) {
       return createEnemy(enemyId);
     }),
     selectedEnemyIndex: 0,
