@@ -1,6 +1,10 @@
 import { getCard } from "../data/cards.js";
-import { getMagicBook } from "../data/magicBooks.js";
 import {
+  getMagicBook,
+  hasMagicBook,
+} from "../data/magicBooks.js";
+import {
+  canEscapeBattle,
   getEffectiveCardCost,
   getEnemyIntent,
   getPlayerMaxEnergy,
@@ -511,6 +515,9 @@ function renderBattle(app) {
           battle.drawPile.length + "</strong></div>" +
         '<div class="pile panel"><span>버림</span><strong>' +
           battle.discardPile.length + "</strong></div>" +
+        (canEscapeBattle(run, battle)
+          ? '<button class="secondary-button escape-button" data-action="escape-battle">전투 이탈</button>'
+          : "") +
         '<button class="end-turn" data-action="end-turn">턴 종료</button>' +
       "</section>" +
 
@@ -550,6 +557,11 @@ function renderReward(app) {
             return renderRewardCard(cardId, labels[index] || "보상");
           }).join("") +
         "</div>" +
+        (
+          hasMagicBook(app.run, "fate_reselection") && !app.rewardRerollUsed
+            ? '<button class="secondary-button reward-reroll" data-action="reroll-random-reward">운명의 재선택 · 랜덤 슬롯 재추첨</button>'
+            : ""
+        ) +
         '<button class="secondary-button" data-action="skip-reward">건너뛰기</button>' +
       "</section>" +
     "</main>"
