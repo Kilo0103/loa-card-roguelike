@@ -516,7 +516,7 @@ function renderBattle(app) {
 
       '<section class="hand" aria-label="손패">' +
         battle.hand.map(function cardHtml(cardId, index) {
-          return renderCard(battle, cardId, index);
+          return renderCard(run, battle, cardId, index);
         }).join("") +
       "</section>" +
 
