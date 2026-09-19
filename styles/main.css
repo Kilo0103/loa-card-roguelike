@@ -3828,3 +3828,567 @@ button:not(:disabled) {
     grid-template-columns: 1fr;
   }
 }
+
+
+/* UI-07A — reward / potion / bond selection presentation */
+.reward-scene {
+  width: min(1160px, calc(100% - 28px));
+  padding: 22px 0 34px;
+}
+
+.reward-stage {
+  width: 100%;
+  padding: 28px;
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(116, 83, 172, 0.13), transparent 32rem),
+    linear-gradient(180deg, rgba(20, 23, 32, 0.97), rgba(10, 12, 17, 0.98));
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.32);
+}
+
+.reward-stage__header {
+  text-align: center;
+}
+
+.reward-stage__header h1 {
+  margin: 5px 0 7px;
+  font-size: 30px;
+}
+
+.reward-stage__header p {
+  margin: 0;
+  color: #8993a5;
+  font-size: 11px;
+}
+
+.reward-summary-strip {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin: 20px auto 0;
+}
+
+.reward-loot-card {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  width: min(360px, 100%);
+  min-height: 78px;
+  padding: 10px 12px;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 13px;
+  text-align: left;
+}
+
+.reward-loot-card__mark {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.reward-loot-card div {
+  min-width: 0;
+}
+
+.reward-loot-card small,
+.reward-loot-card p {
+  color: #7f899b;
+  font-size: 8px;
+}
+
+.reward-loot-card strong {
+  display: block;
+  overflow: hidden;
+  margin-top: 2px;
+  color: #eef1f5;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.reward-loot-card p {
+  margin: 3px 0 0;
+  line-height: 1.4;
+}
+
+.reward-loot-card--gold {
+  border-color: rgba(212, 177, 83, 0.18);
+  background: rgba(86, 66, 28, 0.16);
+}
+
+.reward-loot-card--gold .reward-loot-card__mark {
+  color: #f4df99;
+  background: rgba(154, 118, 43, 0.28);
+}
+
+.reward-loot-card--book {
+  border-color: rgba(220, 190, 111, 0.2);
+  background: rgba(79, 65, 33, 0.18);
+}
+
+.reward-loot-card--book .reward-loot-card__mark {
+  color: #fff0ae;
+  background: rgba(123, 98, 43, 0.28);
+}
+
+.reward-section-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  width: min(820px, 100%);
+  margin: 26px auto 12px;
+}
+
+.reward-section-heading h2 {
+  margin: 3px 0 0;
+  font-size: 18px;
+}
+
+.reward-section-heading > span {
+  color: #7f899b;
+  font-size: 9px;
+}
+
+.reward-card-grid {
+  width: min(820px, 100%);
+  margin: 0 auto;
+  gap: 18px;
+  overflow: visible;
+}
+
+.reward-choice-card {
+  position: relative;
+  flex: 1 1 0;
+  width: min(240px, 100%);
+  min-height: 330px;
+  padding: 0 0 36px;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  overflow: visible;
+  transition: transform 150ms ease, filter 150ms ease;
+}
+
+.reward-choice-card:not(:disabled):hover {
+  z-index: 4;
+  transform: translateY(-8px) scale(1.025);
+  filter: brightness(1.06);
+}
+
+.reward-choice-card__frame {
+  position: absolute;
+  inset: 22px 0 36px;
+  display: grid;
+  grid-template-rows: auto 104px 1fr;
+  padding: 11px;
+  border: 1px solid rgba(255,255,255,0.13);
+  border-radius: 18px;
+  background: linear-gradient(180deg, #202634, #141922);
+  box-shadow:
+    inset 0 0 0 2px rgba(255,255,255,0.025),
+    0 18px 34px rgba(0,0,0,0.28);
+  overflow: hidden;
+}
+
+.reward-choice-card.card--attack .reward-choice-card__frame {
+  border-color: rgba(191,95,107,0.34);
+  background: linear-gradient(180deg, #41222b, #181318);
+}
+
+.reward-choice-card.card--defense .reward-choice-card__frame {
+  border-color: rgba(91,146,185,0.34);
+  background: linear-gradient(180deg, #1f3646, #12181f);
+}
+
+.reward-choice-card.card--skill .reward-choice-card__frame {
+  border-color: rgba(133,107,194,0.34);
+  background: linear-gradient(180deg, #312a48, #17151f);
+}
+
+.reward-choice-card .reward-slot {
+  position: relative;
+  z-index: 2;
+  margin: 0 auto;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: #252a35;
+  color: #aeb7c7;
+  font-size: 9px;
+}
+
+.reward-choice-card .card__header {
+  display: grid;
+  grid-template-columns: 34px minmax(0,1fr) auto;
+  gap: 7px;
+}
+
+.reward-choice-card .card__name {
+  margin: 0;
+  font-size: 14px;
+}
+
+.reward-choice-card .card__type {
+  margin-top: 2px;
+  font-size: 8px;
+}
+
+.reward-choice-card .card__rarity {
+  font-size: 7px;
+}
+
+.reward-choice-card .reward-choice-card__art {
+  margin: 7px 0 9px;
+}
+
+.reward-choice-card .card__body p {
+  margin: 0;
+  color: #cbd1dc;
+  font-size: 10px;
+  line-height: 1.55;
+}
+
+.reward-choice-card .card__tags {
+  margin-top: auto;
+  padding-top: 8px;
+  font-size: 8px;
+}
+
+.reward-choice-card__select {
+  position: absolute;
+  right: 12px;
+  bottom: 6px;
+  left: 12px;
+  z-index: 3;
+  padding: 8px 10px;
+  border: 1px solid rgba(198,167,255,0.18);
+  border-radius: 9px;
+  color: #cfc5eb;
+  background: rgba(79,60,119,0.42);
+  font-size: 9px;
+  text-align: center;
+}
+
+.reward-footer-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  margin-top: 18px;
+}
+
+.reward-footer-actions .secondary-button {
+  margin-top: 0;
+}
+
+.reward-reroll {
+  border-color: rgba(207,176,96,0.18);
+  color: #dfcea0;
+  background: rgba(81,65,29,0.26);
+}
+
+.reward-skip {
+  color: #9aa4b5;
+}
+
+.potion-reward-scene .reward-stage {
+  width: min(720px, 100%);
+  margin: 0 auto;
+}
+
+.potion-reward-focus {
+  display: grid;
+  grid-template-columns: 96px minmax(0,1fr);
+  align-items: center;
+  gap: 20px;
+  width: min(520px, 100%);
+  margin: 28px auto 18px;
+  padding: 20px;
+  border: 1px solid rgba(112,190,171,0.18);
+  border-radius: 17px;
+  background:
+    radial-gradient(circle at 18% 50%, rgba(66,154,132,0.12), transparent 28%),
+    rgba(24,35,34,0.62);
+}
+
+.potion-reward-focus__icon {
+  display: grid;
+  place-items: center;
+  width: 92px;
+  height: 92px;
+  border: 1px solid rgba(120,206,184,0.28);
+  border-radius: 50%;
+  color: #d8f5ed;
+  background:
+    radial-gradient(circle at 35% 30%, rgba(127,219,196,0.2), rgba(40,103,88,0.24));
+  font-size: 30px;
+  font-weight: 900;
+}
+
+.potion-reward-focus__info {
+  text-align: left;
+}
+
+.potion-reward-focus__info > strong {
+  display: block;
+  color: #eff9f6;
+  font-size: 22px;
+}
+
+.potion-reward-focus__info > span {
+  display: block;
+  margin-top: 3px;
+  color: #91b9af;
+  font-size: 10px;
+}
+
+.potion-reward-focus__info p {
+  margin: 13px 0 0;
+  color: #a7bcb7;
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.reward-inventory-status {
+  display: flex;
+  justify-content: space-between;
+  width: min(360px, 100%);
+  margin: 0 auto;
+  padding: 9px 12px;
+  border-radius: 9px;
+  color: #8994a4;
+  background: rgba(255,255,255,0.035);
+  font-size: 9px;
+}
+
+.reward-inventory-status strong {
+  color: #dce4ea;
+}
+
+.reward-guidance {
+  margin: 12px auto 0;
+  color: #7f899b;
+  font-size: 10px;
+  text-align: center;
+}
+
+.reward-actions {
+  width: min(520px,100%);
+  margin: 18px auto 0;
+  text-align: center;
+}
+
+.reward-primary-button {
+  padding: 11px 20px;
+  border: 1px solid rgba(198,167,255,0.28);
+  border-radius: 11px;
+  color: #f4efff;
+  background: linear-gradient(180deg, #7358ca, #56409f);
+  font-size: 11px;
+}
+
+.reward-primary-button:not(:disabled):hover {
+  filter: brightness(1.08);
+}
+
+.reward-decline-button {
+  margin-left: 8px;
+}
+
+.reward-replace-list {
+  margin: 0 0 14px;
+}
+
+.reward-replace-list button {
+  justify-content: flex-start;
+  text-align: left;
+}
+
+.reward-replace-list__icon {
+  display: grid !important;
+  place-items: center;
+  flex: 0 0 32px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  color: #d8f5ed !important;
+  background: rgba(66,154,132,0.2);
+  font-size: 11px !important;
+  font-weight: 800;
+}
+
+.reward-replace-list button > span:last-child {
+  display: flex;
+  flex-direction: column;
+}
+
+.reward-replace-list button small {
+  margin-top: 2px;
+  color: #7f8998;
+  font-size: 8px;
+}
+
+.bond-select-panel {
+  width: 100%;
+  max-width: none;
+  padding: 28px;
+}
+
+.bond-select-grid {
+  grid-template-columns: repeat(4, minmax(0,1fr));
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.bond-select-card {
+  position: relative;
+  min-height: 250px;
+  padding: 20px 16px 46px;
+  border: 1px solid rgba(94,173,210,0.17);
+  border-radius: 16px;
+  background:
+    radial-gradient(circle at 50% 18%, rgba(89,174,214,0.09), transparent 28%),
+    linear-gradient(180deg, rgba(24,38,47,0.92), rgba(14,20,25,0.96));
+  text-align: center;
+  transition: transform 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
+}
+
+.bond-select-card:hover {
+  transform: translateY(-5px);
+  border-color: rgba(113,202,242,0.52);
+  box-shadow: 0 18px 38px rgba(30,87,110,0.18);
+}
+
+.bond-select-card__crest {
+  display: grid !important;
+  place-items: center;
+  width: 62px;
+  height: 62px;
+  margin: 0 auto 13px !important;
+  border: 1px solid rgba(118,203,242,0.26);
+  border-radius: 50%;
+  color: #dff4ff !important;
+  background:
+    radial-gradient(circle at 34% 30%, rgba(124,218,255,0.18), rgba(40,95,119,0.18));
+  font-size: 23px !important;
+  font-weight: 800;
+}
+
+.bond-select-card > strong {
+  margin-top: 4px;
+  font-size: 19px;
+}
+
+.bond-select-card__role {
+  margin-top: 5px !important;
+  color: #86b5ca !important;
+  font-size: 9px !important;
+}
+
+.bond-select-card__effect {
+  margin-top: 18px;
+  padding: 12px;
+  border-radius: 10px;
+  background: rgba(0,0,0,0.18);
+  text-align: left;
+}
+
+.bond-select-card__effect small {
+  color: #75a7bd;
+  font-size: 8px;
+}
+
+.bond-select-card__effect p {
+  margin: 6px 0 0;
+  color: #aebec6;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.bond-select-card__select {
+  position: absolute;
+  right: 12px;
+  bottom: 10px;
+  left: 12px;
+  padding: 7px;
+  border-radius: 8px;
+  color: #c5eaf9 !important;
+  background: rgba(57,120,148,0.22);
+  font-size: 8px !important;
+}
+
+.result-panel--clear {
+  width: min(720px,100%);
+  margin: 0 auto;
+}
+
+.result-panel--clear .reward-summary-strip {
+  margin-bottom: 20px;
+}
+
+@media (max-width: 900px) {
+  .bond-select-grid {
+    grid-template-columns: repeat(2,minmax(0,1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .reward-stage {
+    padding: 22px 14px;
+  }
+
+  .reward-summary-strip {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .reward-loot-card {
+    width: 100%;
+  }
+
+  .reward-card-grid {
+    justify-content: flex-start;
+    gap: 12px;
+    padding-bottom: 12px;
+    overflow-x: auto;
+  }
+
+  .reward-choice-card {
+    flex: 0 0 210px;
+  }
+
+  .potion-reward-focus {
+    grid-template-columns: 1fr;
+    text-align: center;
+  }
+
+  .potion-reward-focus__icon {
+    margin: 0 auto;
+  }
+
+  .potion-reward-focus__info {
+    text-align: center;
+  }
+}
+
+@media (max-width: 520px) {
+  .bond-select-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .reward-footer-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .reward-footer-actions .secondary-button,
+  .reward-actions .reward-primary-button,
+  .reward-actions .reward-decline-button {
+    width: 100%;
+    margin: 7px 0 0;
+  }
+}
