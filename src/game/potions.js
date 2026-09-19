@@ -47,7 +47,7 @@ export const POTION_LIBRARY = Object.freeze({
   },
 });
 
-const POTION_IDS = Object.freeze(Object.keys(POTION_LIBRARY));
+export const POTION_IDS = Object.freeze(Object.keys(POTION_LIBRARY));
 
 const DROP_CHANCES = Object.freeze({
   normal: 0.30,
