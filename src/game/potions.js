@@ -1,4 +1,6 @@
+import { hasMagicBook } from "../data/magicBooks.js";
 import { drawCards } from "./deck.js";
+import { getBlockGain } from "./magicBookEffects.js";
 
 export const MAX_POTIONS = 3;
 
@@ -63,7 +65,8 @@ export function getPotion(potionId) {
 }
 
 export function rollPotionDrop(run, nodeType, guaranteed = false) {
-  const chance = guaranteed ? 1 : (DROP_CHANCES[nodeType] || 0);
+  const forced = guaranteed || hasMagicBook(run, "potion_addiction");
+  const chance = forced ? 1 : (DROP_CHANCES[nodeType] || 0);
   if (Math.random() >= chance) {
     return null;
   }
@@ -152,8 +155,9 @@ export function usePotion(run, battle, inventoryIndex) {
     run.hp = Math.min(run.maxHp, run.hp + potion.value);
     message += " · HP " + (run.hp - before) + " 회복";
   } else if (potion.effect === "block") {
-    battle.playerBlock += potion.value;
-    message += " · 보호막 +" + potion.value;
+    const gained = getBlockGain(run, potion.value);
+    battle.playerBlock += gained;
+    message += " · 보호막 +" + gained;
   } else if (potion.effect === "energy") {
     battle.energy += potion.value;
     message += " · 코스트 +" + potion.value;
