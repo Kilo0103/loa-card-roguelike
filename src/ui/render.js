@@ -873,39 +873,40 @@ function renderBattle(app) {
           "</div>" +
         "</section>" +
 
-        '<section class="battle-resource-row">' +
-          renderPotionInventory(run, battle) +
-          renderBondBar(run) +
-          renderMagicBookBar(run) +
-        "</section>" +
-
-        '<section class="combat-command-bar">' +
-          '<div class="combat-command-bar__actions">' +
-            retainButton +
-            bondButton +
-            escapeButton +
-            '<button class="end-turn battle-end-turn" data-action="end-turn">' +
-              '<span>행동 완료</span><strong>턴 종료</strong>' +
-            "</button>" +
+        '<section class="battle-bottom-grid">' +
+          '<div class="battle-side-tools">' +
+            '<section class="battle-resource-row">' +
+              renderPotionInventory(run, battle) +
+              renderBondBar(run) +
+              renderMagicBookBar(run) +
+            "</section>" +
+            '<section class="combat-command-bar">' +
+              '<div class="combat-command-bar__actions">' +
+                retainButton +
+                bondButton +
+                escapeButton +
+                '<button class="end-turn battle-end-turn" data-action="end-turn">' +
+                  '<span>행동 완료</span><strong>턴 종료</strong>' +
+                "</button>" +
+              "</div>" +
+            "</section>" +
+            '<details class="battle-log battle-log--compact panel">' +
+              "<summary>전투 로그 · 최근 " + Math.min(18, battle.log.length) + "개</summary>" +
+              "<div>" +
+                battle.log.map(function logHtml(entry) {
+                  return "<p>" + entry + "</p>";
+                }).join("") +
+              "</div>" +
+            "</details>" +
           "</div>" +
-        "</section>" +
-
-        '<section class="hand battle-hand' +
-          (battle.hand.length >= 8 ? " battle-hand--dense" : "") +
-          '" aria-label="손패">' +
-          battle.hand.map(function cardHtml(cardId, index) {
-            return renderCard(run, battle, cardId, index);
-          }).join("") +
-        "</section>" +
-
-        '<details class="battle-log battle-log--compact panel">' +
-          "<summary>전투 로그 · 최근 " + Math.min(18, battle.log.length) + "개</summary>" +
-          "<div>" +
-            battle.log.map(function logHtml(entry) {
-              return "<p>" + entry + "</p>";
+          '<section class="hand battle-hand' +
+            (battle.hand.length >= 8 ? " battle-hand--dense" : "") +
+            '" aria-label="손패">' +
+            battle.hand.map(function cardHtml(cardId, index) {
+              return renderCard(run, battle, cardId, index);
             }).join("") +
-          "</div>" +
-        "</details>" +
+          "</section>" +
+        "</section>" +
       "</section>" +
     "</main>"
   );
