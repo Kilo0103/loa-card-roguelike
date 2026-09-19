@@ -38,6 +38,8 @@ const app = {
   lastGoldReward: 0,
   draggedHandIndex: null,
   draggedCardTarget: null,
+  dragPreview: null,
+  dragHandTop: 0,
 };
 
 function openMap(notice = "") {
@@ -142,9 +144,56 @@ function finishBattleAction() {
   render(root, app);
 }
 
+function removeDragPreview() {
+  if (app.dragPreview) {
+    app.dragPreview.remove();
+    app.dragPreview = null;
+  }
+}
+
+function createDragPreview(cardElement, event) {
+  removeDragPreview();
+
+  const preview = cardElement.cloneNode(true);
+  preview.removeAttribute("data-action");
+  preview.removeAttribute("data-index");
+  preview.removeAttribute("data-drag-card-index");
+  preview.removeAttribute("draggable");
+  preview.disabled = false;
+  preview.classList.remove("card--dragging");
+  preview.classList.add("card-drag-preview");
+
+  document.body.appendChild(preview);
+  app.dragPreview = preview;
+
+  const hand = root.querySelector(".hand");
+  app.dragHandTop = hand
+    ? hand.getBoundingClientRect().top
+    : window.innerHeight * 0.72;
+
+  updateDragPreview(event.clientX, event.clientY);
+}
+
+function updateDragPreview(clientX, clientY) {
+  if (!app.dragPreview || !clientX || !clientY) {
+    return;
+  }
+
+  const travelDistance = Math.max(280, app.dragHandTop - 100);
+  const upwardDistance = Math.max(0, app.dragHandTop - clientY);
+  const progress = Math.min(1, upwardDistance / travelDistance);
+  const scale = 1 - progress * 0.33;
+
+  app.dragPreview.style.left = clientX + "px";
+  app.dragPreview.style.top = clientY + "px";
+  app.dragPreview.style.setProperty("--drag-scale", scale.toFixed(3));
+}
+
 function clearCardDrag() {
   app.draggedHandIndex = null;
   app.draggedCardTarget = null;
+  app.dragHandTop = 0;
+  removeDragPreview();
 
   for (const element of root.querySelectorAll(".drop-target--active, .drop-target--invalid, .card--dragging")) {
     element.classList.remove("drop-target--active", "drop-target--invalid", "card--dragging");
@@ -181,6 +230,8 @@ function newRun() {
   app.lastGoldReward = 0;
   app.draggedHandIndex = null;
   app.draggedCardTarget = null;
+  app.dragPreview = null;
+  app.dragHandTop = 0;
   app.mode = "map";
   render(root, app);
 }
@@ -199,10 +250,16 @@ root.addEventListener("dragstart", function handleDragStart(event) {
   app.draggedHandIndex = Number(card.dataset.dragCardIndex);
   app.draggedCardTarget = card.dataset.cardTarget;
   card.classList.add("card--dragging");
+  createDragPreview(card, event);
 
   if (event.dataTransfer) {
     event.dataTransfer.effectAllowed = "move";
     event.dataTransfer.setData("text/plain", String(app.draggedHandIndex));
+
+    const transparentDragImage = document.createElement("canvas");
+    transparentDragImage.width = 1;
+    transparentDragImage.height = 1;
+    event.dataTransfer.setDragImage(transparentDragImage, 0, 0);
   }
 });
 
@@ -210,6 +267,8 @@ root.addEventListener("dragover", function handleDragOver(event) {
   if (app.mode !== "battle" || app.draggedHandIndex === null) {
     return;
   }
+
+  updateDragPreview(event.clientX, event.clientY);
 
   const enemyTarget = event.target.closest("[data-drop-enemy-index]");
   const selfTarget = event.target.closest("[data-drop-self]");
@@ -257,6 +316,10 @@ root.addEventListener("drop", function handleDrop(event) {
     event.preventDefault();
     playDraggedCard();
   }
+});
+
+root.addEventListener("drag", function handleDrag(event) {
+  updateDragPreview(event.clientX, event.clientY);
 });
 
 root.addEventListener("dragend", function handleDragEnd() {
