@@ -1,6 +1,7 @@
 import {
   createBattle,
   endTurn,
+  escapeBattle,
   playCard,
   selectEnemy,
 } from "./game/battle.js";
@@ -28,6 +29,7 @@ import {
   advanceRun,
   createCardRewards,
   createRun,
+  rerollRandomReward,
 } from "./game/run.js";
 import {
   addPotion,
@@ -50,6 +52,7 @@ const app = {
   lastGoldReward: 0,
   lastMagicBookDrop: null,
   pendingPotionDrop: null,
+  rewardRerollUsed: false,
   draggedHandIndex: null,
   draggedCardTarget: null,
   dragPreview: null,
@@ -151,6 +154,7 @@ function openRewards(goldReward) {
   app.rewards = createCardRewards();
   app.lastGoldReward = goldReward;
   app.pendingPotionDrop = rollPotionDrop(app.run, nodeType);
+  app.rewardRerollUsed = false;
 
   app.notice = droppedBook
     ? droppedBook.name + " 마법서가 드랍되어 획득되었습니다."
@@ -285,6 +289,7 @@ function newRun() {
   app.lastGoldReward = 0;
   app.lastMagicBookDrop = null;
   app.pendingPotionDrop = null;
+  app.rewardRerollUsed = false;
   app.draggedHandIndex = null;
   app.draggedCardTarget = null;
   app.dragPreview = null;
@@ -411,6 +416,23 @@ root.addEventListener("click", function handleClick(event) {
   if (action === "end-turn") {
     endTurn(app.run, app.battle);
     finishBattleAction();
+    return;
+  }
+
+  if (action === "escape-battle") {
+    if (escapeBattle(app.run, app.battle)) {
+      completeCurrentMapNode(app.run.map);
+      openMap("탈출의 명수 — 보상을 포기하고 다음 경로로 이동합니다.");
+    }
+    return;
+  }
+
+  if (action === "reroll-random-reward") {
+    if (!app.rewardRerollUsed) {
+      app.rewards = rerollRandomReward(app.rewards);
+      app.rewardRerollUsed = true;
+      render(root, app);
+    }
     return;
   }
 
