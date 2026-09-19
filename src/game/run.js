@@ -62,6 +62,33 @@ export function createCardRewards() {
   return rewards;
 }
 
+export function rerollRandomReward(rewards) {
+  if (!Array.isArray(rewards) || rewards.length < 3) {
+    return rewards;
+  }
+
+  const excluded = [...rewards];
+  const randomPool = Math.random() < 0.5
+    ? CLASS_REWARD_POOL
+    : COMMON_REWARD_POOL;
+
+  let randomChoice = randomCard(randomPool, excluded);
+  if (!randomChoice) {
+    randomChoice = randomCard(
+      [...CLASS_REWARD_POOL, ...COMMON_REWARD_POOL],
+      excluded
+    );
+  }
+
+  if (!randomChoice) {
+    return rewards;
+  }
+
+  const nextRewards = [...rewards];
+  nextRewards[2] = randomChoice;
+  return nextRewards;
+}
+
 export function addCardToDeck(run, cardId) {
   run.deck.push(cardId);
 }
