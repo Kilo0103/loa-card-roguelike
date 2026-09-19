@@ -262,6 +262,140 @@ function finishCardReward(notice) {
   finishPostBattleRewards(notice);
 }
 
+function captureBattleFeedbackState() {
+  if (!app.battle) {
+    return null;
+  }
+
+  return {
+    playerHp: app.run.hp,
+    playerBlock: app.battle.playerBlock,
+    energy: app.battle.energy,
+    bondReady: Boolean(app.run.bond && app.run.bond.ready),
+    enemies: app.battle.enemies.map(function captureEnemy(enemy) {
+      return {
+        hp: enemy.hp,
+        block: enemy.block,
+        stagger: enemy.stagger,
+        staggeredTurns: enemy.staggeredTurns,
+      };
+    }),
+  };
+}
+
+function createFloatingCombatText(target, text, kind) {
+  if (!target || !text) {
+    return;
+  }
+
+  const element = document.createElement("span");
+  element.className = "combat-float combat-float--" + kind;
+  element.textContent = text;
+  target.appendChild(element);
+
+  window.setTimeout(function removeCombatFloat() {
+    element.remove();
+  }, 900);
+}
+
+function applyBattleFeedback(before, source) {
+  if (!before || app.mode !== "battle" || !app.battle) {
+    return;
+  }
+
+  const after = captureBattleFeedbackState();
+
+  window.requestAnimationFrame(function animateBattleFeedback() {
+    const playerHud = root.querySelector(".player-hud");
+
+    if (playerHud) {
+      const hpDelta = after.playerHp - before.playerHp;
+      const blockDelta = after.playerBlock - before.playerBlock;
+
+      if (hpDelta < 0) {
+        playerHud.classList.add("combat-hit--player");
+        createFloatingCombatText(playerHud, String(hpDelta), "damage");
+      } else if (hpDelta > 0) {
+        playerHud.classList.add("combat-heal--player");
+        createFloatingCombatText(playerHud, "+" + hpDelta, "heal");
+      }
+
+      if (blockDelta > 0) {
+        createFloatingCombatText(playerHud, "+" + blockDelta + " BLOCK", "block");
+      }
+    }
+
+    after.enemies.forEach(function animateEnemy(enemyAfter, enemyIndex) {
+      const enemyBefore = before.enemies[enemyIndex];
+      if (!enemyBefore) {
+        return;
+      }
+
+      const enemyElement = root.querySelector(
+        '[data-enemy-index="' + enemyIndex + '"]'
+      );
+      if (!enemyElement) {
+        return;
+      }
+
+      const hpDelta = enemyAfter.hp - enemyBefore.hp;
+      const blockDelta = enemyAfter.block - enemyBefore.block;
+      const staggerDelta = enemyAfter.stagger - enemyBefore.stagger;
+
+      if (hpDelta < 0) {
+        enemyElement.classList.add("combat-hit--enemy");
+        createFloatingCombatText(enemyElement, String(hpDelta), "damage");
+      }
+
+      if (blockDelta < 0 && hpDelta === 0) {
+        createFloatingCombatText(
+          enemyElement,
+          String(blockDelta) + " BLOCK",
+          "block-break"
+        );
+      }
+
+      if (staggerDelta < 0) {
+        createFloatingCombatText(
+          enemyElement,
+          String(staggerDelta) + " STG",
+          "stagger"
+        );
+      }
+
+      if (
+        enemyBefore.staggeredTurns === 0 &&
+        enemyAfter.staggeredTurns > 0
+      ) {
+        enemyElement.classList.add("combat-stagger-burst");
+        createFloatingCombatText(enemyElement, "무력화!", "stagger-break");
+      }
+
+      if (enemyBefore.hp > 0 && enemyAfter.hp <= 0) {
+        enemyElement.classList.add("combat-defeated");
+      }
+    });
+
+    if (source === "bond") {
+      const bondButton = root.querySelector(".bond-use-button");
+      const bondBar = root.querySelector(".bond-bar");
+      if (bondButton) {
+        bondButton.classList.add("combat-bond-burst");
+      }
+      if (bondBar) {
+        bondBar.classList.add("combat-bond-burst");
+      }
+    }
+
+    if (!before.bondReady && after.bondReady) {
+      const bondBar = root.querySelector(".bond-bar");
+      if (bondBar) {
+        bondBar.classList.add("combat-bond-ready-burst");
+      }
+    }
+  });
+}
+
 function finishBattleAction() {
   if (app.battle.status === "victory") {
     const goldReward = awardBattleGold(app.run, app.battle.mapNodeType);
@@ -373,9 +507,11 @@ function playDraggedCard(enemyIndex = null) {
   }
 
   const handIndex = app.draggedHandIndex;
+  const before = captureBattleFeedbackState();
   clearCardDrag();
   playCard(app.run, app.battle, handIndex);
   finishBattleAction();
+  applyBattleFeedback(before, "card");
 }
 
 function newRun() {
@@ -521,8 +657,11 @@ root.addEventListener("click", function handleClick(event) {
   }
 
   if (action === "play-card") {
+    const before = captureBattleFeedbackState();
+    button.classList.add("combat-card-use");
     playCard(app.run, app.battle, Number(button.dataset.index));
     finishBattleAction();
+    applyBattleFeedback(before, "card");
     return;
   }
 
@@ -553,15 +692,19 @@ root.addEventListener("click", function handleClick(event) {
   }
 
   if (action === "use-bond") {
+    const before = captureBattleFeedbackState();
     const result = useBond(app.run, app.battle);
     app.notice = result.message;
     finishBattleAction();
+    applyBattleFeedback(before, "bond");
     return;
   }
 
   if (action === "end-turn") {
+    const before = captureBattleFeedbackState();
     endTurn(app.run, app.battle);
     finishBattleAction();
+    applyBattleFeedback(before, "enemy-turn");
     return;
   }
 
@@ -623,6 +766,7 @@ root.addEventListener("click", function handleClick(event) {
   }
 
   if (action === "use-potion") {
+    const before = captureBattleFeedbackState();
     const result = usePotion(
       app.run,
       app.battle,
@@ -630,6 +774,7 @@ root.addEventListener("click", function handleClick(event) {
     );
     app.notice = result.message;
     render(root, app);
+    applyBattleFeedback(before, "potion");
     return;
   }
 
