@@ -122,7 +122,7 @@ export function getFlatAttackBonus(run, battle, card, enemy, options = {}) {
 
   if (
     hasMagicBook(run, "all_in") &&
-    battle.playerStatuses.currentCardEndsAtZero
+    options.allIn
   ) {
     bonus += 4;
   }
@@ -158,8 +158,20 @@ export function ignoresEnemyShield(run) {
   return hasMagicBook(run, "shield_piercing");
 }
 
-export function getBlockGain(run, baseAmount) {
-  return baseAmount + (hasMagicBook(run, "shield_mastery") ? 1 : 0);
+export function getBlockGain(run, baseAmount, battle = null, card = null) {
+  let gain = baseAmount + (hasMagicBook(run, "shield_mastery") ? 1 : 0);
+
+  if (
+    battle &&
+    card &&
+    card.type === "defense" &&
+    hasMagicBook(run, "all_in") &&
+    battle.playerStatuses.currentCardEndsAtZero
+  ) {
+    gain += 4;
+  }
+
+  return gain;
 }
 
 export function getStaggerGain(run, card, baseAmount) {
