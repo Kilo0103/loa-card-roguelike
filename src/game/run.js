@@ -5,6 +5,7 @@ import {
 } from "../data/cards.js";
 import { shuffle } from "./deck.js";
 import { createMap } from "./map.js";
+import { createBondState } from "./bond.js";
 
 export function createRun() {
   return {
@@ -15,6 +16,7 @@ export function createRun() {
     gold: 0,
     potions: [],
     magicBooks: [],
+    bond: createBondState(),
     battleNumber: 1,
     victories: 0,
     map: createMap(),
