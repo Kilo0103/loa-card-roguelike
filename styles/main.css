@@ -1246,3 +1246,37 @@ button:not(:disabled) {
     grid-template-columns: 1fr;
   }
 }
+
+
+/* Magic book setup interactions */
+.setup-banner {
+  margin-top: 12px;
+  padding: 11px 14px;
+  border: 1px solid rgba(220, 190, 111, 0.32);
+  border-radius: 12px;
+  color: #f0dda0;
+  background: rgba(91, 69, 25, 0.2);
+  text-align: center;
+  font-size: 13px;
+}
+
+.card--setup-choice,
+.card--retain-choice {
+  cursor: pointer !important;
+}
+
+.card--setup-choice:hover {
+  transform: translateY(-8px);
+  border-color: rgba(226, 184, 96, 0.8);
+}
+
+.card--retain-choice:hover,
+.card--retained {
+  border-color: rgba(198, 167, 255, 0.9);
+  box-shadow: 0 0 24px rgba(138, 109, 225, 0.28);
+}
+
+.retain-button--active {
+  border-color: rgba(198, 167, 255, 0.8) !important;
+  background: rgba(91, 69, 145, 0.5) !important;
+}
