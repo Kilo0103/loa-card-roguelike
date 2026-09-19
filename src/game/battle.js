@@ -20,6 +20,11 @@ import {
   resolveCharge,
 } from "./effects.js";
 import {
+  consumeBondCharge,
+  ensureBondState,
+  getEsther,
+} from "./bond.js";
+import {
   BASE_MAX_ENERGY,
   getBlockGain,
   getCardCostAdjustment,
@@ -264,10 +269,15 @@ function damagePlayer(run, battle, enemy, amount, piercing) {
   const reducedAmount = Math.ceil(
     weakenedAmount * getIncomingDamageMultiplier(run)
   );
-  const absorbed = piercing ? 0 : Math.min(battle.playerBlock, reducedAmount);
+  const bondGuardedPiercing =
+    piercing && battle.playerStatuses.bondPiercingGuard;
+  const effectivePiercing = piercing && !bondGuardedPiercing;
+  const absorbed = effectivePiercing
+    ? 0
+    : Math.min(battle.playerBlock, reducedAmount);
   const hpDamage = reducedAmount - absorbed;
 
-  if (!piercing) {
+  if (!effectivePiercing) {
     battle.playerBlock -= absorbed;
   }
 
@@ -280,7 +290,9 @@ function damagePlayer(run, battle, enemy, amount, piercing) {
 
   const actualHpDamage = applyHpDamage(run, battle, hpDamage);
 
-  const piercingText = piercing ? " [쉴드 관통]" : "";
+  const piercingText = effectivePiercing
+    ? " [쉴드 관통]"
+    : (bondGuardedPiercing ? " [바훈투르 보호]" : "");
   addLog(
     battle,
     enemy.name + " 공격 " + reducedAmount + piercingText +
@@ -754,6 +766,8 @@ export function createBattle(run, mapNode) {
       currentTurnCardTypes: [],
       crisisEvasionUsed: false,
       thornsUsed: false,
+      bondPiercingGuard: false,
+      bondCardDiscounts: 0,
     },
     playerDebuffs: {},
     charge: null,
@@ -881,8 +895,12 @@ export function getEffectiveCardCost(run, battle, card) {
       hasMagicBook(run, "endless_nightmare") &&
       battle.playerStatuses.nightmareFreeCard
     ) {
-      return 0;
+      cost = 0;
     }
+  }
+
+  if (battle.playerStatuses.bondCardDiscounts > 0) {
+    cost -= 1;
   }
 
   return Math.max(0, cost);
@@ -949,6 +967,182 @@ export function selectRetainedCard(run, battle, handIndex) {
     "기억 고정 대상 — " + getCard(battle.hand[handIndex]).name
   );
   return true;
+}
+
+export function canUseBond(run, battle) {
+  const bond = ensureBondState(run);
+
+  return Boolean(
+    battle &&
+    battle.status === "playing" &&
+    bond.estherId &&
+    bond.ready &&
+    battle.playerStatuses.contingencyRemaining === 0
+  );
+}
+
+function cleanseBondDebuffs(battle, all) {
+  const keys = Object.keys(battle.playerDebuffs);
+  if (keys.length === 0) {
+    return 0;
+  }
+
+  if (all) {
+    const count = keys.length;
+    battle.playerDebuffs = {};
+    return count;
+  }
+
+  const index = Math.floor(Math.random() * keys.length);
+  delete battle.playerDebuffs[keys[index]];
+  return 1;
+}
+
+function bondTarget(battle) {
+  return selectedEnemy(battle);
+}
+
+export function useBond(run, battle) {
+  if (!canUseBond(run, battle)) {
+    return {
+      success: false,
+      message: "지금은 결속을 사용할 수 없습니다.",
+    };
+  }
+
+  const bond = ensureBondState(run);
+  const esther = getEsther(bond.estherId);
+  const level = bond.level;
+  const enemy = bondTarget(battle);
+  const requiresTarget = ["silian", "wei", "ninav"].includes(bond.estherId);
+
+  if (requiresTarget && !enemy) {
+    return {
+      success: false,
+      message: "결속 대상을 선택해야 합니다.",
+    };
+  }
+
+  if (!consumeBondCharge(run)) {
+    return {
+      success: false,
+      message: "결속이 아직 준비되지 않았습니다.",
+    };
+  }
+
+  if (bond.estherId === "silian") {
+    const damage = [18, 24, 32][level - 1] +
+      (level >= 3 && enemy.staggeredTurns > 0 ? 8 : 0);
+    dealDamageToEnemy(battle, enemy, damage);
+
+    if (level >= 2 && enemy.hp > 0) {
+      applyEnemyStatus(
+        run,
+        battle,
+        enemy,
+        "destruction",
+        level >= 3 ? 3 : 2,
+        20
+      );
+    }
+  } else if (bond.estherId === "wei") {
+    const damage = [8, 10, 12][level - 1];
+    const stagger = [5, 8, 11][level - 1];
+    const wasStaggered = enemy.staggeredTurns > 0;
+    dealDamageToEnemy(battle, enemy, damage);
+
+    if (enemy.hp > 0) {
+      applyStagger(battle, enemy, stagger);
+    }
+
+    if (
+      level >= 3 &&
+      !wasStaggered &&
+      enemy.staggeredTurns > 0
+    ) {
+      drawCards(battle, 2);
+      battle.energy += 1;
+      addLog(battle, "웨이 3강 — 무력화 성공 · 2장 드로우 + 코스트 1");
+    }
+  } else if (bond.estherId === "inanna") {
+    const heal = [12, 18, 22][level - 1];
+    const previousHp = run.hp;
+    run.hp = Math.min(run.maxHp, run.hp + heal);
+    const cleansed = cleanseBondDebuffs(battle, level >= 2);
+
+    if (level >= 3) {
+      const gained = getBlockGain(run, 12);
+      battle.playerBlock += gained;
+      addLog(battle, "이난나 3강 — 보호막 " + gained + " 획득");
+    }
+
+    addLog(
+      battle,
+      "이난나 — HP " + (run.hp - previousHp) +
+        " 회복 · 디버프 " + cleansed + "개 정화"
+    );
+  } else if (bond.estherId === "balthorr") {
+    const block = [18, 26, 34][level - 1];
+    const gained = getBlockGain(run, block);
+    battle.playerBlock += gained;
+
+    if (level >= 3) {
+      battle.playerStatuses.bondPiercingGuard = true;
+    }
+
+    addLog(battle, "바훈투르 — 보호막 " + gained + " 획득");
+  } else if (bond.estherId === "ninav") {
+    let damage = [16, 22, 28][level - 1];
+
+    if (
+      level >= 3 &&
+      ["elite", "midboss", "boss"].includes(enemy.tier)
+    ) {
+      damage += 8;
+    }
+
+    dealDamageToEnemy(battle, enemy, damage, { ignoreBlock: true });
+
+    if (level >= 2 && enemy.hp > 0) {
+      applyEnemyStatus(run, battle, enemy, "weakness", 2, 2);
+    }
+  } else if (bond.estherId === "azena") {
+    const living = battle.enemies.filter(function livingEnemy(target) {
+      return target.hp > 0;
+    });
+    const damage = level >= 3 ? 7 : [7, 10][level - 1];
+    const hits = level >= 3 ? 2 : 1;
+
+    for (let hit = 0; hit < hits; hit += 1) {
+      for (const target of living) {
+        if (target.hp > 0) {
+          dealDamageToEnemy(battle, target, damage);
+        }
+      }
+    }
+  } else if (bond.estherId === "shandi") {
+    const draw = [2, 3, 3][level - 1];
+    const energy = [1, 2, 2][level - 1];
+    drawCards(battle, draw);
+    battle.energy += energy;
+
+    if (level >= 3) {
+      battle.playerStatuses.bondCardDiscounts += 2;
+    }
+
+    addLog(
+      battle,
+      "샨디 — " + draw + "장 드로우 + 코스트 " + energy + " 회복"
+    );
+  }
+
+  addLog(battle, "결속 발동 — " + esther.name + " " + level + "강");
+  checkVictory(run, battle);
+
+  return {
+    success: true,
+    message: esther.name + " 결속 " + level + "강 발동",
+  };
 }
 
 export function canEscapeBattle(run, battle) {
@@ -1036,6 +1230,10 @@ export function playCard(run, battle, handIndex) {
 
   battle.energy -= cost;
   battle.playerStatuses.energySpentThisTurn += cost;
+
+  if (battle.playerStatuses.bondCardDiscounts > 0) {
+    battle.playerStatuses.bondCardDiscounts -= 1;
+  }
 
   if (
     hasMagicBook(run, "mana_echo") &&
@@ -1231,7 +1429,15 @@ export function endTurn(run, battle) {
   const enemySnapshot = [...battle.enemies];
 
   for (const enemy of enemySnapshot) {
+    const consumesBondGuard =
+      battle.playerStatuses.bondPiercingGuard && enemy.hp > 0;
+
     resolveEnemyIntent(run, battle, enemy);
+
+    if (consumesBondGuard) {
+      battle.playerStatuses.bondPiercingGuard = false;
+      addLog(battle, "바훈투르 결속 보호 종료");
+    }
 
     if (run.hp <= 0) {
       battle.status = "defeat";
