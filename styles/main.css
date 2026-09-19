@@ -2799,3 +2799,269 @@ button:not(:disabled) {
     height: 82px;
   }
 }
+
+
+/* UI-04 — compact combat resources */
+.resource-bar-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.resource-bar-heading > strong {
+  color: #cfd6e2;
+  font-size: 10px;
+}
+
+.battle-resource-row > .potion-bar {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  gap: 7px;
+}
+
+.potion-slots {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.potion-slots .potion-slot {
+  position: relative;
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  align-items: center;
+  gap: 1px 7px;
+  min-width: 0;
+  min-height: 46px;
+  padding: 6px 7px;
+  border-radius: 10px;
+}
+
+.potion-slot__key {
+  position: absolute;
+  top: 3px;
+  right: 5px;
+  color: #6f7889;
+  font-size: 7px;
+}
+
+.potion-slot__icon {
+  grid-row: 1 / 3;
+  display: grid !important;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  margin: 0 !important;
+  border: 1px solid rgba(118, 188, 174, 0.22);
+  border-radius: 50%;
+  color: #cdece5 !important;
+  background:
+    radial-gradient(circle at 36% 30%, rgba(117, 204, 183, 0.23), rgba(37, 91, 80, 0.26));
+  font-size: 11px !important;
+  font-weight: 800;
+}
+
+.potion-slots .potion-slot strong {
+  overflow: hidden;
+  font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.potion-slots .potion-slot small {
+  display: block;
+  overflow: hidden;
+  color: #778397;
+  font-size: 7px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.potion-slots .potion-slot--empty {
+  grid-template-columns: 30px 1fr;
+  border-style: dashed;
+}
+
+.potion-slots .potion-slot--empty small {
+  color: #596274;
+}
+
+.bond-bar {
+  display: grid;
+  grid-template-columns: minmax(100px, auto) minmax(120px, 1fr);
+  grid-template-rows: auto auto;
+  align-items: center;
+  gap: 7px 12px;
+}
+
+.bond-bar__identity {
+  display: grid;
+  grid-template-columns: auto auto;
+  align-items: center;
+  justify-content: start;
+  gap: 3px 6px;
+}
+
+.bond-bar__identity .label {
+  grid-column: 1 / 3;
+}
+
+.bond-bar__identity > strong {
+  font-size: 12px;
+}
+
+.bond-level {
+  padding: 2px 5px;
+  border-radius: 999px;
+  color: #c6dbeb;
+  background: rgba(63, 115, 145, 0.2);
+  font-size: 8px;
+}
+
+.bond-charge-track {
+  display: grid;
+  grid-template-columns: 12px minmax(24px, 1fr) 12px auto;
+  align-items: center;
+  gap: 5px;
+}
+
+.bond-charge-dot {
+  width: 11px;
+  height: 11px;
+  border: 1px solid rgba(112, 179, 211, 0.3);
+  border-radius: 50%;
+  background: rgba(32, 51, 62, 0.62);
+}
+
+.bond-charge-dot.is-on {
+  border-color: rgba(151, 222, 255, 0.68);
+  background: #69b8da;
+  box-shadow: 0 0 12px rgba(90, 188, 230, 0.42);
+}
+
+.bond-charge-line {
+  height: 2px;
+  background: rgba(112, 179, 211, 0.18);
+}
+
+.bond-charge-line.is-on {
+  background: rgba(105, 184, 218, 0.72);
+  box-shadow: 0 0 8px rgba(90, 188, 230, 0.3);
+}
+
+.bond-charge-track > strong {
+  color: #96a8b8;
+  font-size: 8px;
+  white-space: nowrap;
+}
+
+.bond-bar--ready {
+  border-color: rgba(105, 184, 218, 0.36) !important;
+  background:
+    radial-gradient(circle at 60% 50%, rgba(80, 174, 215, 0.12), transparent 50%),
+    rgba(20, 24, 34, 0.88);
+}
+
+.bond-bar--ready .bond-charge-track > strong {
+  color: #bcecff;
+}
+
+.bond-materials {
+  grid-column: 1 / 3;
+  display: flex;
+  flex-wrap: nowrap;
+  justify-content: flex-start;
+  gap: 5px;
+  overflow-x: auto;
+}
+
+.bond-materials > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: 0 0 auto;
+  padding: 3px 6px;
+}
+
+.bond-materials b {
+  color: #e0e5ec;
+  font-size: 9px;
+}
+
+.bond-materials small {
+  color: #777f8d;
+  font-size: 7px;
+}
+
+.magic-book-bar {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  gap: 7px;
+}
+
+.magic-book-list {
+  flex-wrap: nowrap;
+  gap: 5px;
+  max-width: 100%;
+  padding-bottom: 2px;
+  overflow-x: auto;
+}
+
+.magic-book-chip {
+  flex: 0 0 auto;
+  min-width: 31px;
+  min-height: 28px;
+  justify-content: center;
+  padding: 4px 6px;
+  border-radius: 8px;
+}
+
+.magic-book-chip b {
+  font-size: 8px;
+}
+
+.battle-resource-row .magic-book-chip__name {
+  display: none;
+}
+
+.battle-resource-row .magic-book-list {
+  align-items: center;
+}
+
+.battle-resource-row .bond-materials {
+  scrollbar-width: thin;
+}
+
+.battle-resource-row .magic-book-list,
+.battle-resource-row .bond-materials {
+  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+}
+
+.battle-resource-row .magic-book-list::-webkit-scrollbar,
+.battle-resource-row .bond-materials::-webkit-scrollbar {
+  height: 4px;
+}
+
+.battle-resource-row .magic-book-list::-webkit-scrollbar-thumb,
+.battle-resource-row .bond-materials::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+}
+
+@media (max-width: 760px) {
+  .bond-bar {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto;
+  }
+
+  .bond-charge-track,
+  .bond-materials {
+    grid-column: 1;
+  }
+
+  .potion-slots .potion-slot small {
+    display: none;
+  }
+}
