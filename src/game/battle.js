@@ -88,16 +88,34 @@ function maybeTriggerFirstAid(run, battle) {
   addLog(battle, "응급 처치 — HP " + (run.hp - previousHp) + " 회복");
 }
 
-function addPlayerDebuff(battle, type, duration, value) {
+function addPlayerDebuff(
+  run,
+  battle,
+  type,
+  duration,
+  value,
+  sourceEnemy = null
+) {
+  if (
+    hasMagicBook(run, "cleanse_instinct") &&
+    !battle.playerStatuses.cleanseInstinctUsed
+  ) {
+    battle.playerStatuses.cleanseInstinctUsed = true;
+    addLog(battle, "정화 본능 — " + type + " 무효");
+    return false;
+  }
+
   if (battle.playerDebuffs[type]) {
     battle.playerDebuffs[type].duration += duration;
-    return;
+    return true;
   }
 
   battle.playerDebuffs[type] = {
     duration,
     value: value || 0,
+    sourceEnemyId: sourceEnemy ? sourceEnemy.id : null,
   };
+  return true;
 }
 
 function updateBossPhase(battle, enemy) {
@@ -240,10 +258,12 @@ function resolveEnemyIntent(run, battle, enemy) {
 
     if (intent.type === "attackStatus" && run.hp > 0) {
       addPlayerDebuff(
+        run,
         battle,
         intent.status,
         intent.duration,
-        intent.statusValue
+        intent.statusValue,
+        enemy
       );
       addLog(battle, intent.status + " " + intent.duration + "턴 부여");
     }
@@ -258,10 +278,12 @@ function resolveEnemyIntent(run, battle, enemy) {
 
     if (run.hp > 0) {
       addPlayerDebuff(
+        run,
         battle,
         intent.status,
         intent.duration,
-        intent.statusValue
+        intent.statusValue,
+        enemy
       );
       addLog(battle, intent.status + " " + intent.duration + "턴 부여");
     }
@@ -384,7 +406,7 @@ function resolvePendingChecks(run, battle) {
 
       if (battle.playerStatuses.cardsPlayedThisTurn < 3) {
         damagePlayer(run, battle, enemy, 8, false);
-        addPlayerDebuff(battle, "frozen", 1, 1);
+        addPlayerDebuff(run, battle, "frozen", 1, 1, enemy);
         addLog(battle, "빙결 덫 실패 — 빙결 1턴");
       } else {
         addLog(battle, "빙결 덫 해제 성공");
@@ -537,6 +559,7 @@ function finishAttackCard(battle, card) {
   battle.playerStatuses.firstAttackUsed = true;
   battle.playerStatuses.counterStanceReady = false;
   battle.playerStatuses.counterattackReady = false;
+  battle.playerStatuses.nightmareAttackBonus = false;
 }
 
 export function getPlayerMaxEnergy(run) {
@@ -578,6 +601,11 @@ export function createBattle(run, mapNode) {
       indomitableUsedThisEnemyTurn: false,
       bloodContractActive: false,
       victoryResolved: false,
+      cleanseInstinctUsed: false,
+      nightmareFreeCard: false,
+      nightmareAttackBonus: false,
+      manaEchoStreak: 0,
+      manaEchoTurns: 0,
     },
     playerDebuffs: {},
     charge: null,
@@ -692,9 +720,36 @@ export function getEffectiveCardCost(run, battle, card) {
     const frozen = battle.playerDebuffs.frozen;
     cost += cold ? cold.value : 0;
     cost += frozen ? frozen.value : 0;
+
+    if (
+      hasMagicBook(run, "endless_nightmare") &&
+      battle.playerStatuses.nightmareFreeCard
+    ) {
+      return 0;
+    }
   }
 
   return Math.max(0, cost);
+}
+
+export function canEscapeBattle(run, battle) {
+  return Boolean(
+    battle &&
+    battle.status === "playing" &&
+    !battle.isFinalBoss &&
+    hasMagicBook(run, "escape_master")
+  );
+}
+
+export function escapeBattle(run, battle) {
+  if (!canEscapeBattle(run, battle)) {
+    return false;
+  }
+
+  battle.status = "escaped";
+  battle.charge = null;
+  addLog(battle, "탈출의 명수 — 보상을 포기하고 전투에서 이탈");
+  return true;
 }
 
 export function selectEnemy(battle, enemyIndex) {
@@ -756,9 +811,21 @@ export function playCard(run, battle, handIndex) {
     battle.energy - cost === 0;
 
   battle.energy -= cost;
+
+  if (
+    hasMagicBook(run, "mana_echo") &&
+    battle.playerStatuses.manaEchoTurns > 0
+  ) {
+    battle.energy = Math.max(3, battle.energy);
+  }
+
   battle.hand.splice(handIndex, 1);
   battle.discardPile.push(cardId);
   battle.playerStatuses.cardsPlayedThisTurn += 1;
+
+  if (wasFirstCard) {
+    battle.playerStatuses.nightmareFreeCard = false;
+  }
 
   if (guardianInstinctApplies) {
     battle.playerStatuses.guardianInstinctUsed = true;
@@ -844,6 +911,38 @@ export function endTurn(run, battle) {
   ) {
     battle.playerStatuses.nextTurnEnergyBonus = 1;
     addLog(battle, "숨 고르기 — 다음 턴 코스트 +1");
+  }
+
+  if (hasMagicBook(run, "endless_nightmare")) {
+    battle.playerStatuses.nightmareFreeCard = battle.energy >= 4;
+    battle.playerStatuses.nightmareAttackBonus = battle.energy === 0;
+
+    if (battle.energy >= 4) {
+      addLog(battle, "끝없는 악몽 — 다음 턴 첫 카드 코스트 0");
+    } else if (battle.energy === 0) {
+      addLog(battle, "끝없는 악몽 — 다음 턴 첫 공격 피해 +4");
+    }
+  }
+
+  if (hasMagicBook(run, "mana_echo")) {
+    if (battle.playerStatuses.manaEchoTurns > 0) {
+      battle.playerStatuses.manaEchoTurns -= 1;
+
+      if (battle.playerStatuses.manaEchoTurns === 0) {
+        battle.playerStatuses.manaEchoStreak = 0;
+        addLog(battle, "마력 잔향 종료");
+      }
+    } else if (battle.energy >= 3) {
+      battle.playerStatuses.manaEchoStreak += 1;
+
+      if (battle.playerStatuses.manaEchoStreak >= 5) {
+        battle.playerStatuses.manaEchoStreak = 0;
+        battle.playerStatuses.manaEchoTurns = 3;
+        addLog(battle, "마력 잔향 발동 — 다음 3턴 코스트 최저 3");
+      }
+    } else {
+      battle.playerStatuses.manaEchoStreak = 0;
+    }
   }
 
   discardHand(battle);
