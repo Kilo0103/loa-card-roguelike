@@ -9,6 +9,7 @@ const VALID_MODES = Object.freeze([
   "rest",
   "shop",
   "event",
+  "bond-select",
   "defeat",
   "field-clear",
 ]);
@@ -34,6 +35,7 @@ export function createSaveData(app) {
       lastMagicBookDrop: clone(app.lastMagicBookDrop),
       pendingPotionDrop: app.pendingPotionDrop || null,
       rewardRerollUsed: Boolean(app.rewardRerollUsed),
+      pendingBondSelection: Boolean(app.pendingBondSelection),
     },
   };
 }
@@ -92,6 +94,7 @@ export function restoreAppState(app, saveData) {
   app.lastMagicBookDrop = clone(state.lastMagicBookDrop);
   app.pendingPotionDrop = state.pendingPotionDrop || null;
   app.rewardRerollUsed = Boolean(state.rewardRerollUsed);
+  app.pendingBondSelection = Boolean(state.pendingBondSelection);
 
   app.draggedHandIndex = null;
   app.draggedCardTarget = null;
