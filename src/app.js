@@ -102,7 +102,7 @@ function downloadCurrentSave() {
   URL.revokeObjectURL(url);
 
   app.notice = "현재 런을 JSON 파일로 저장했습니다.";
-  render(root, app);
+  renderApp();
 }
 
 async function loadSaveFile(file) {
@@ -117,10 +117,10 @@ async function loadSaveFile(file) {
     restoreAppState(app, saveData);
     ensureBondState(app.run);
     app.notice = "저장 파일을 불러왔습니다.";
-    render(root, app);
+    renderApp();
   } catch (error) {
     app.notice = "저장 파일 불러오기 실패: " + error.message;
-    render(root, app);
+    renderApp();
   } finally {
     loadSaveInput.value = "";
   }
@@ -133,7 +133,7 @@ function openMap(notice = "") {
   app.shop = null;
   app.event = null;
   app.notice = notice;
-  render(root, app);
+  renderApp();
 }
 
 function completeSpecialNode(notice) {
@@ -159,27 +159,27 @@ function enterSelectedMapNode() {
     app.mode = "battle";
     app.battle = createBattle(app.run, node);
     app.rewards = [];
-    render(root, app);
+    renderApp();
     return;
   }
 
   if (node.type === "rest") {
     app.mode = "rest";
-    render(root, app);
+    renderApp();
     return;
   }
 
   if (node.type === "shop") {
     app.mode = "shop";
     app.shop = createShop(app.run);
-    render(root, app);
+    renderApp();
     return;
   }
 
   if (node.type === "event") {
     app.mode = "event";
     app.event = createEvent(app.run);
-    render(root, app);
+    renderApp();
   }
 }
 
@@ -237,14 +237,14 @@ function openRewards(goldReward, bondMaterialNotice) {
   app.notice = notices.join(" ");
 
 
-  render(root, app);
+  renderApp();
 }
 
 function finishPostBattleRewards(notice) {
   if (app.pendingBondSelection && !ensureBondState(app.run).estherId) {
     app.mode = "bond-select";
     app.notice = notice;
-    render(root, app);
+    renderApp();
     return;
   }
 
@@ -255,7 +255,7 @@ function finishCardReward(notice) {
   if (app.pendingPotionDrop) {
     app.mode = "potion-reward";
     app.notice = notice;
-    render(root, app);
+    renderApp();
     return;
   }
 
@@ -421,7 +421,7 @@ function finishBattleAction() {
         notices.push("결속 재료 · " + bondMaterialNotice);
       }
       app.notice = notices.join(" ");
-      render(root, app);
+      renderApp();
       return;
     }
 
@@ -433,7 +433,7 @@ function finishBattleAction() {
     app.mode = "defeat";
   }
 
-  render(root, app);
+  renderApp();
 }
 
 function removeDragPreview() {
@@ -531,7 +531,7 @@ function newRun() {
   app.dragPreview = null;
   app.dragHandTop = 0;
   app.mode = "map";
-  render(root, app);
+  renderApp();
 }
 
 downloadSaveButton.addEventListener("click", function handleSaveDownload() {
@@ -666,7 +666,7 @@ root.addEventListener("click", function handleClick(event) {
 
   if (action === "select-enemy") {
     selectEnemy(app.battle, Number(button.dataset.enemyIndex));
-    render(root, app);
+    renderApp();
     return;
   }
 
@@ -685,13 +685,13 @@ root.addEventListener("click", function handleClick(event) {
       app.battle,
       Number(button.dataset.index)
     );
-    render(root, app);
+    renderApp();
     return;
   }
 
   if (action === "toggle-retain-mode") {
     toggleRetainSelectionMode(app.run, app.battle);
-    render(root, app);
+    renderApp();
     return;
   }
 
@@ -701,7 +701,7 @@ root.addEventListener("click", function handleClick(event) {
       app.battle,
       Number(button.dataset.index)
     );
-    render(root, app);
+    renderApp();
     return;
   }
 
@@ -734,7 +734,7 @@ root.addEventListener("click", function handleClick(event) {
     if (!app.rewardRerollUsed) {
       app.rewards = rerollRandomReward(app.rewards);
       app.rewardRerollUsed = true;
-      render(root, app);
+      renderApp();
     }
     return;
   }
@@ -787,7 +787,7 @@ root.addEventListener("click", function handleClick(event) {
       Number(button.dataset.inventoryIndex)
     );
     app.notice = result.message;
-    render(root, app);
+    renderApp();
     applyBattleFeedback(before, "potion");
     return;
   }
@@ -804,7 +804,7 @@ root.addEventListener("click", function handleClick(event) {
       completeSpecialNode(result.message);
     } else {
       app.notice = result.message;
-      render(root, app);
+      renderApp();
     }
     return;
   }
@@ -812,7 +812,7 @@ root.addEventListener("click", function handleClick(event) {
   if (action === "shop-upgrade-bond") {
     const result = upgradeBond(app.run, "shop");
     app.notice = result.message;
-    render(root, app);
+    renderApp();
     return;
   }
 
@@ -823,14 +823,14 @@ root.addEventListener("click", function handleClick(event) {
       Number(button.dataset.itemIndex)
     );
     app.notice = result.message;
-    render(root, app);
+    renderApp();
     return;
   }
 
   if (action === "buy-shop-magic-book") {
     const result = buyShopMagicBook(app.run, app.shop);
     app.notice = result.message;
-    render(root, app);
+    renderApp();
     return;
   }
 
@@ -841,7 +841,7 @@ root.addEventListener("click", function handleClick(event) {
       Number(button.dataset.itemIndex)
     );
     app.notice = result.message;
-    render(root, app);
+    renderApp();
     return;
   }
 
@@ -852,7 +852,7 @@ root.addEventListener("click", function handleClick(event) {
       Number(button.dataset.deckIndex)
     );
     app.notice = result.message;
-    render(root, app);
+    renderApp();
     return;
   }
 
@@ -863,7 +863,7 @@ root.addEventListener("click", function handleClick(event) {
       Number(button.dataset.itemIndex)
     );
     app.notice = result.message;
-    render(root, app);
+    renderApp();
     return;
   }
 
@@ -892,7 +892,7 @@ root.addEventListener("click", function handleClick(event) {
       completeSpecialNode(result.message);
     } else {
       app.notice = result.message;
-      render(root, app);
+      renderApp();
     }
     return;
   }
