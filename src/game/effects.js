@@ -2,60 +2,221 @@ import { drawCards } from "./deck.js";
 
 function addLog(battle, message) {
   battle.log.unshift(message);
-  battle.log = battle.log.slice(0, 12);
+  battle.log = battle.log.slice(0, 18);
 }
 
-function dealDamageToEnemy(battle, rawDamage) {
-  const vulnerable = battle.turn <= battle.enemy.vulnerableUntilTurn;
-  const modifiedDamage = vulnerable ? Math.ceil(rawDamage * 1.5) : rawDamage;
-  const absorbed = Math.min(battle.enemy.block, modifiedDamage);
-  const hpDamage = modifiedDamage - absorbed;
-
-  battle.enemy.block -= absorbed;
-  battle.enemy.hp = Math.max(0, battle.enemy.hp - hpDamage);
-
-  const suffix = vulnerable ? " (무력화 취약 +50%)" : "";
-  addLog(battle, `적에게 ${modifiedDamage} 피해${suffix}`);
-}
-
-function applyStagger(battle, value) {
-  if (battle.enemy.stagger <= 0) {
+function addTimedStatus(statuses, type, duration, value) {
+  if (statuses[type]) {
+    statuses[type].duration += duration;
     return;
   }
 
-  battle.enemy.stagger = Math.max(0, battle.enemy.stagger - value);
-  addLog(battle, `무력화 ${value} 감소`);
+  statuses[type] = {
+    duration,
+    value: value || 0,
+  };
+}
 
-  if (battle.enemy.stagger === 0) {
-    battle.enemy.skipNextAction = true;
-    battle.enemy.vulnerableUntilTurn = battle.turn + 1;
-    addLog(battle, "무력화 성공! 다음 적 행동이 취소되고 잠시 취약해집니다.");
+export function dealDamageToEnemy(battle, enemy, rawDamage) {
+  if (!enemy || enemy.hp <= 0) {
+    return 0;
+  }
+
+  const destruction = enemy.statuses.destruction;
+  const bonusPercent = destruction ? destruction.value : 0;
+  const modifiedDamage = Math.ceil(rawDamage * (1 + bonusPercent / 100));
+  const absorbed = Math.min(enemy.block, modifiedDamage);
+  const hpDamage = modifiedDamage - absorbed;
+
+  enemy.block -= absorbed;
+  enemy.hp = Math.max(0, enemy.hp - hpDamage);
+
+  const suffix = bonusPercent > 0 ? " (파괴 +" + bonusPercent + "%)" : "";
+  addLog(battle, enemy.name + "에게 " + modifiedDamage + " 피해" + suffix);
+  return modifiedDamage;
+}
+
+export function applyStagger(battle, enemy, value) {
+  if (!enemy || enemy.maxStagger <= 0 || enemy.staggeredTurns > 0) {
+    return;
+  }
+
+  enemy.stagger = Math.max(0, enemy.stagger - value);
+  addLog(battle, enemy.name + " 무력화 " + value + " 감소");
+
+  if (enemy.stagger === 0) {
+    enemy.staggeredTurns = 2;
+    addLog(battle, enemy.name + " 무력화 성공 — 2턴 동안 행동 불가");
   }
 }
 
-export function resolveCardEffects(battle, card) {
+export function applyEnemyStatus(battle, enemy, type, duration, value) {
+  if (!enemy || enemy.hp <= 0) {
+    return;
+  }
+
+  addTimedStatus(enemy.statuses, type, duration, value);
+
+  if (type === "taunt") {
+    if (enemy.tier !== "boss") {
+      enemy.actionCancelled = true;
+      addLog(battle, enemy.name + " 도발 — 현재 행동 취소");
+    } else {
+      addLog(battle, enemy.name + "은 보스라 도발의 행동 취소에 면역");
+    }
+  }
+}
+
+function cleansePlayerDebuff(battle) {
+  const keys = Object.keys(battle.playerDebuffs);
+  if (keys.length === 0) {
+    addLog(battle, "정화할 디버프가 없습니다.");
+    return;
+  }
+
+  const index = Math.floor(Math.random() * keys.length);
+  const key = keys[index];
+  delete battle.playerDebuffs[key];
+  addLog(battle, key + " 정화");
+}
+
+function resolveCounter(battle, enemy) {
+  if (!enemy || enemy.hp <= 0 || enemy.staggeredTurns > 0) {
+    return;
+  }
+
+  const intent = enemy.intents[enemy.intentIndex % enemy.intents.length];
+  if (!intent.counterable || enemy.actionCancelled) {
+    return;
+  }
+
+  enemy.actionCancelled = true;
+  drawCards(battle, 1);
+  addLog(battle, enemy.name + " 카운터 성공 — 현재 행동 취소 + 1장 드로우");
+}
+
+export function resolveCharge(battle) {
+  if (!battle.charge) {
+    return;
+  }
+
+  const card = battle.charge.card;
+  const enemy = battle.enemies[battle.charge.targetIndex];
+  const stage = battle.charge.stage;
+  const damage = card.charge.stages[stage - 1];
+
+  if (enemy && enemy.hp > 0) {
+    dealDamageToEnemy(battle, enemy, damage);
+    if (card.chargeStatus) {
+      applyEnemyStatus(
+        battle,
+        enemy,
+        card.chargeStatus.type,
+        card.chargeStatus.duration,
+        card.chargeStatus.value
+      );
+    }
+    addLog(battle, card.name + " " + stage + "단계 발사");
+  } else {
+    addLog(battle, card.name + " 차징 대상이 없어 취소");
+  }
+
+  battle.charge = null;
+}
+
+export function resolveCardEffects(run, battle, card, enemy) {
   for (const effect of card.effects) {
     switch (effect.type) {
       case "damage":
-        dealDamageToEnemy(battle, effect.value);
+        dealDamageToEnemy(battle, enemy, effect.value);
         break;
       case "block":
         battle.playerBlock += effect.value;
-        addLog(battle, `실드 ${effect.value} 획득`);
+        addLog(battle, "보호막 " + effect.value + " 획득");
         break;
       case "stagger":
-        applyStagger(battle, effect.value);
+        applyStagger(battle, enemy, effect.value);
         break;
       case "draw":
         drawCards(battle, effect.value);
-        addLog(battle, `카드 ${effect.value}장 드로우`);
+        addLog(battle, "카드 " + effect.value + "장 드로우");
         break;
       case "energy":
         battle.energy += effect.value;
-        addLog(battle, `행동력 ${effect.value} 회복`);
+        addLog(battle, "코스트 " + effect.value + " 회복");
+        break;
+      case "doubleShield": {
+        const gained = battle.playerBlock;
+        battle.playerBlock += gained;
+        addLog(battle, "철옹성 — 보호막 " + gained + " 추가");
+        break;
+      }
+      case "taunt":
+        applyEnemyStatus(battle, enemy, "taunt", effect.duration, 0);
+        break;
+      case "weakness":
+        applyEnemyStatus(battle, enemy, "weakness", effect.duration, effect.value);
+        break;
+      case "cleanse":
+        cleansePlayerDebuff(battle);
+        break;
+      case "counterSpear":
+        battle.playerStatuses.counterSpear = true;
+        addLog(battle, "카운터 스피어 준비");
+        break;
+      case "holdTheLine":
+        battle.playerBlock += 6;
+        addLog(battle, "보호막 6 획득");
+        if (battle.playerBlock >= 15) {
+          drawCards(battle, 1);
+          addLog(battle, "전선 유지 조건 달성 — 1장 드로우");
+        }
+        break;
+      case "shieldBash": {
+        const shield = battle.playerBlock;
+        const damage = shield >= 5 ? 6 : 4;
+        dealDamageToEnemy(battle, enemy, damage);
+        if (shield >= 15) {
+          applyStagger(battle, enemy, 1);
+        }
+        break;
+      }
+      case "shieldCharge": {
+        const refund = battle.playerBlock >= 10;
+        dealDamageToEnemy(battle, enemy, 6);
+        battle.playerBlock += 3;
+        addLog(battle, "보호막 3 획득");
+        if (refund) {
+          battle.energy += 1;
+          addLog(battle, "방패 돌진 조건 달성 — 코스트 1 회복");
+        }
+        break;
+      }
+      case "damageByShield": {
+        let damage = effect.base;
+        for (const threshold of effect.thresholds) {
+          if (battle.playerBlock >= threshold[0]) {
+            damage = threshold[1];
+            break;
+          }
+        }
+        dealDamageToEnemy(battle, enemy, damage);
+        break;
+      }
+      case "damageIfStaggered":
+        dealDamageToEnemy(
+          battle,
+          enemy,
+          enemy && enemy.staggeredTurns > 0 ? effect.staggered : effect.normal
+        );
+        break;
+      case "counter":
+        resolveCounter(battle, enemy);
+        break;
+      case "chargeDamage":
         break;
       default:
-        throw new Error(`Unsupported effect type: ${effect.type}`);
+        throw new Error("Unsupported effect type: " + effect.type);
     }
   }
 }
