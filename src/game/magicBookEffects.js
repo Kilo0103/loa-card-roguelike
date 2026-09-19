@@ -145,13 +145,26 @@ export function getFlatAttackBonus(run, battle, card, enemy, options = {}) {
   return bonus;
 }
 
-export function getAttackMultiplier(run) {
-  if (!hasMagicBook(run, "masters_tenacity")) {
-    return 1;
+export function getAttackMultiplier(run, enemy) {
+  let bonusRatio = 0;
+
+  if (hasMagicBook(run, "masters_tenacity")) {
+    bonusRatio += Math.max(0, (run.maxHp - run.hp) / run.maxHp);
   }
 
-  const lostRatio = Math.max(0, (run.maxHp - run.hp) / run.maxHp);
-  return 1 + lostRatio;
+  if (
+    hasMagicBook(run, "grudge") &&
+    enemy &&
+    (enemy.tier === "midboss" || enemy.tier === "boss")
+  ) {
+    bonusRatio += 0.20;
+  }
+
+  return 1 + bonusRatio;
+}
+
+export function getIncomingDamageMultiplier(run) {
+  return hasMagicBook(run, "grudge") ? 1.20 : 1;
 }
 
 export function ignoresEnemyShield(run) {
