@@ -5,6 +5,7 @@ import {
 } from "../data/magicBooks.js";
 import {
   canEscapeBattle,
+  canUseBond,
   getEffectiveCardCost,
   getEnemyIntent,
   getPlayerMaxEnergy,
@@ -15,6 +16,15 @@ import {
   getCurrentMapNode,
 } from "../game/map.js";
 import { canChooseEventOption } from "../game/nodes.js";
+import {
+  BOND_MATERIAL_LABELS,
+  BOND_SHOP_FEES,
+  ESTHER_IDS,
+  canUpgradeBond,
+  ensureBondState,
+  getBondUpgradeCost,
+  getEsther,
+} from "../game/bond.js";
 import {
   canUsePotion,
   getPotion,
@@ -342,6 +352,7 @@ function renderMap(app) {
 
       renderNotice(app) +
       renderMagicBookBar(run) +
+      renderBondBar(run) +
 
       '<section class="map-panel panel">' +
         '<div class="map-panel__header">' +
@@ -392,6 +403,123 @@ function renderMagicBookBar(run) {
         }).join("") +
       "</div>" +
     "</div>"
+  );
+}
+
+function renderBondBar(run) {
+  const bond = ensureBondState(run);
+  const materialEntries = Object.keys(BOND_MATERIAL_LABELS);
+  const hasMaterials = materialEntries.some(function hasMaterial(key) {
+    return bond.materials[key] > 0;
+  });
+
+  if (!bond.estherId && !hasMaterials) {
+    return "";
+  }
+
+  const esther = bond.estherId ? getEsther(bond.estherId) : null;
+  const charge = bond.ready ? "READY" : bond.completedBattles + " / 2";
+
+  return (
+    '<div class="bond-bar panel">' +
+      '<div class="bond-bar__identity">' +
+        '<span class="label">결속</span>' +
+        '<strong>' + (esther ? esther.name + " " + bond.level + "강" : "미결속") + "</strong>" +
+        (esther ? '<span class="bond-charge">' + charge + "</span>" : "") +
+      "</div>" +
+      '<div class="bond-materials">' +
+        materialEntries.map(function materialChip(key) {
+          return (
+            '<span title="' + BOND_MATERIAL_LABELS[key] + '">' +
+              BOND_MATERIAL_LABELS[key] + " " + bond.materials[key] +
+            "</span>"
+          );
+        }).join("") +
+      "</div>" +
+    "</div>"
+  );
+}
+
+function renderBondWorkshop(run, source) {
+  const bond = ensureBondState(run);
+
+  if (!bond.estherId) {
+    return (
+      '<section class="panel bond-workshop">' +
+        '<span class="eyebrow">BOND WORKSHOP</span>' +
+        "<h2>결속 강화소</h2>" +
+        "<p>F5 루가루 처치 후 에스더와 결속하면 이용할 수 있습니다.</p>" +
+      "</section>"
+    );
+  }
+
+  const esther = getEsther(bond.estherId);
+  const cost = getBondUpgradeCost(run);
+
+  if (!cost) {
+    return (
+      '<section class="panel bond-workshop">' +
+        '<span class="eyebrow">BOND WORKSHOP</span>' +
+        "<h2>" + esther.name + " 결속 3강</h2>" +
+        "<p>현재 결속은 최대 단계입니다.</p>" +
+      "</section>"
+    );
+  }
+
+  const check = canUpgradeBond(run, source);
+  const nextLevel = bond.level + 1;
+  const fee = source === "shop" ? BOND_SHOP_FEES[nextLevel] : 0;
+  const action = source === "shop"
+    ? "shop-upgrade-bond"
+    : "rest-upgrade-bond";
+  const costText = Object.keys(cost)
+    .filter(function positiveCost(key) {
+      return cost[key] > 0;
+    })
+    .map(function costPart(key) {
+      return BOND_MATERIAL_LABELS[key] + " " + cost[key];
+    })
+    .join(" · ");
+
+  return (
+    '<section class="panel bond-workshop">' +
+      '<div class="bond-workshop__heading">' +
+        '<div><span class="eyebrow">BOND WORKSHOP</span>' +
+        "<h2>" + esther.name + " " + bond.level + "강 → " + nextLevel + "강</h2></div>" +
+        '<strong>' + (source === "shop" ? fee + "G 수수료" : "무료") + "</strong>" +
+      "</div>" +
+      "<p>필요 재료 · " + costText + "</p>" +
+      "<p>다음 효과 · " + esther.descriptions[nextLevel - 1] + "</p>" +
+      '<button data-action="' + action + '"' +
+        (check.success ? "" : " disabled") + ">" +
+        (check.success ? "결속 강화" : check.message) +
+      "</button>" +
+    "</section>"
+  );
+}
+
+function renderBondSelect(app) {
+  return (
+    '<main class="center-screen bond-select-screen">' +
+      '<section class="panel bond-select-panel">' +
+        '<p class="eyebrow">ESTHER BOND</p>' +
+        "<h1>에스더와 결속</h1>" +
+        "<p>이번 런에서 함께할 에스더 한 명을 선택합니다. 선택 후 변경할 수 없습니다.</p>" +
+        '<div class="bond-select-grid">' +
+          ESTHER_IDS.map(function estherOption(estherId) {
+            const esther = getEsther(estherId);
+            return (
+              '<button class="bond-select-card" data-action="choose-bond" data-esther-id="' + estherId + '">' +
+                "<strong>" + esther.name + "</strong>" +
+                "<span>" + esther.role + "</span>" +
+                "<p>1강 · " + esther.descriptions[0] + "</p>" +
+              "</button>"
+            );
+          }).join("") +
+        "</div>" +
+        renderNotice(app) +
+      "</section>" +
+    "</main>"
   );
 }
 
@@ -511,6 +639,7 @@ function renderBattle(app) {
       "</header>" +
 
       renderMagicBookBar(run) +
+      renderBondBar(run) +
       renderPlayerDebuffs(battle) +
       renderPotionInventory(run, battle) +
       setupText +
@@ -552,6 +681,13 @@ function renderBattle(app) {
               "</button>"
             : ""
         ) +
+        (run.bond && run.bond.estherId
+          ? '<button class="bond-use-button" data-action="use-bond"' +
+            (canUseBond(run, battle) ? "" : " disabled") + ">" +
+            getEsther(run.bond.estherId).name + " 결속 · " +
+            (run.bond.ready ? "READY" : run.bond.completedBattles + "/2") +
+            "</button>"
+          : "") +
         (canEscapeBattle(run, battle)
           ? '<button class="secondary-button escape-button" data-action="escape-battle">전투 이탈</button>'
           : "") +
@@ -612,14 +748,18 @@ function renderRest(app) {
   const actualHeal = Math.min(healAmount, run.maxHp - run.hp);
 
   return (
-    '<main class="center-screen">' +
-      '<section class="panel node-panel">' +
-        '<p class="eyebrow">REST</p>' +
-        "<h1>야영지</h1>" +
-        "<p>잠시 쉬며 체력을 회복할 수 있습니다.</p>" +
-        '<div class="node-stat">현재 HP <strong>' + run.hp + " / " + run.maxHp + "</strong></div>" +
-        '<button data-action="rest-heal">휴식하기 · HP ' + actualHeal + " 회복</button>" +
-      "</section>" +
+    '<main class="center-screen rest-screen">' +
+      '<div class="rest-layout">' +
+        '<section class="panel node-panel">' +
+          '<p class="eyebrow">REST</p>' +
+          "<h1>야영지</h1>" +
+          "<p>이번 휴식에서는 체력 회복과 무료 결속 강화 중 하나만 선택할 수 있습니다.</p>" +
+          '<div class="node-stat">현재 HP <strong>' + run.hp + " / " + run.maxHp + "</strong></div>" +
+          '<button data-action="rest-heal">HP 회복 선택 · ' + actualHeal + " 회복</button>" +
+        "</section>" +
+        renderBondBar(run) +
+        renderBondWorkshop(run, "rest") +
+      "</div>" +
     "</main>"
   );
 }
@@ -748,6 +888,28 @@ function renderCardRemovalService(app) {
   );
 }
 
+function renderShopBondMaterials(app) {
+  const items = app.shop.bondMaterialItems || [];
+
+  return (
+    '<section class="panel bond-material-shop">' +
+      '<div><span class="eyebrow">BOND MATERIALS</span><h2>결속 재료</h2></div>' +
+      '<div class="bond-material-shop__items">' +
+        items.map(function materialOffer(item, index) {
+          const disabled = item.sold || app.run.gold < item.price;
+          return (
+            '<button data-action="buy-shop-bond-material" data-item-index="' + index + '"' +
+              (disabled ? " disabled" : "") + ">" +
+              "<strong>" + BOND_MATERIAL_LABELS[item.material] + " +" + item.amount + "</strong>" +
+              "<span>" + (item.sold ? "판매 완료" : item.price + "G") + "</span>" +
+            "</button>"
+          );
+        }).join("") +
+      "</div>" +
+    "</section>"
+  );
+}
+
 function renderShop(app) {
   return (
     '<main class="game-shell special-screen">' +
@@ -766,6 +928,9 @@ function renderShop(app) {
         }).join("") +
       "</section>" +
       renderCardRemovalService(app) +
+      renderBondBar(app.run) +
+      renderShopBondMaterials(app) +
+      renderBondWorkshop(app.run, "shop") +
       '<button class="secondary-button special-leave" data-action="leave-shop">상점 나가기</button>' +
     "</main>"
   );
@@ -861,6 +1026,11 @@ export function render(root, app) {
 
   if (app.mode === "event") {
     root.innerHTML = renderEvent(app);
+    return;
+  }
+
+  if (app.mode === "bond-select") {
+    root.innerHTML = renderBondSelect(app);
     return;
   }
 
