@@ -554,6 +554,32 @@ function renderReward(app) {
 }
 
 
+function renderMagicBookReward(app) {
+  return (
+    '<main class="game-shell reward-screen">' +
+      '<section class="panel reward-panel magic-book-reward-panel">' +
+        '<p class="eyebrow">MAGIC BOOK REWARD</p>' +
+        "<h1>마법서 선택</h1>" +
+        "<p>마법서 3권 중 하나를 선택하세요.</p>" +
+        '<div class="magic-book-reward-grid">' +
+          app.pendingMagicBookRewards.map(function bookReward(bookId) {
+            const book = getMagicBook(bookId);
+
+            return (
+              '<button class="magic-book-choice" data-action="choose-magic-book" data-book-id="' + bookId + '">' +
+                '<span class="eyebrow">#' + book.number + "</span>" +
+                "<strong>" + book.name + "</strong>" +
+                "<p>" + book.description + "</p>" +
+              "</button>"
+            );
+          }).join("") +
+        "</div>" +
+        renderNotice(app) +
+      "</section>" +
+    "</main>"
+  );
+}
+
 function renderRest(app) {
   const run = app.run;
   const healAmount = Math.ceil(run.maxHp * 0.2);
@@ -598,6 +624,33 @@ function renderShopItem(app, item, index) {
   );
 }
 
+function renderShopMagicBook(app) {
+  const item = app.shop.magicBookItem;
+
+  if (!item || !item.bookId) {
+    return "";
+  }
+
+  const book = getMagicBook(item.bookId);
+  const affordable = app.run.gold >= item.price;
+  const disabled = item.sold || !affordable;
+  const stateText = item.sold ? "판매 완료" : item.price + "G";
+
+  return (
+    '<div class="shop-item shop-item--magic-book">' +
+      '<div class="magic-book-card">' +
+        '<span class="eyebrow">MAGIC BOOK #' + book.number + "</span>" +
+        "<strong>" + book.name + "</strong>" +
+        "<p>" + book.description + "</p>" +
+      "</div>" +
+      '<button data-action="buy-shop-magic-book"' +
+        (disabled ? " disabled" : "") + ">" +
+        stateText +
+      "</button>" +
+    "</div>"
+  );
+}
+
 function renderShop(app) {
   return (
     '<main class="game-shell special-screen">' +
@@ -610,6 +663,7 @@ function renderShop(app) {
         app.shop.items.map(function itemHtml(item, index) {
           return renderShopItem(app, item, index);
         }).join("") +
+        renderShopMagicBook(app) +
       "</section>" +
       '<button class="secondary-button special-leave" data-action="leave-shop">상점 나가기</button>' +
     "</main>"
@@ -688,6 +742,11 @@ export function render(root, app) {
 
   if (app.mode === "potion-reward") {
     root.innerHTML = renderPotionReward(app);
+    return;
+  }
+
+  if (app.mode === "magic-book-reward") {
+    root.innerHTML = renderMagicBookReward(app);
     return;
   }
 
