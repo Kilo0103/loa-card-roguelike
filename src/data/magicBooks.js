@@ -138,3 +138,14 @@ export function createMagicBookRewards(run, amount = 3) {
 
   return shuffled.slice(0, amount);
 }
+
+
+export function rollMagicBookDrop(run) {
+  const available = getAvailableImplementedMagicBookIds(run);
+
+  if (available.length === 0) {
+    return null;
+  }
+
+  return available[Math.floor(Math.random() * available.length)];
+}
