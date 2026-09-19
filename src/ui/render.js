@@ -156,21 +156,43 @@ function renderEnemy(battle, enemy, index) {
   const dead = enemy.hp <= 0;
   const hpPercent = Math.max(0, enemy.hp / enemy.maxHp * 100);
   const intent = dead
-    ? { label: "처치됨", counterable: false }
+    ? { type: "dead", label: "처치됨", counterable: false }
     : getEnemyIntent(battle, enemy);
   const counter = intent.counterable
-    ? '<span class="counter-tag">카운터 가능</span>'
+    ? '<span class="counter-tag">COUNTER</span>'
     : "";
+  const intentType = intent.type || "special";
+  const intentKind =
+    ["attack", "attackStatus", "multiAttack", "multiAttackStatus", "packAttack",
+      "conditionalAttack", "conditionalAttackAny", "terrainStrike", "terrainCollapse"
+    ].includes(intentType)
+      ? "attack"
+      : (intentType === "guard"
+        ? "defense"
+        : (["buffAllAttack"].includes(intentType)
+          ? "buff"
+          : (intentType === "summon"
+            ? "summon"
+            : "special")));
+  const intentMark = intentKind === "attack"
+    ? "!"
+    : (intentKind === "defense"
+      ? "◆"
+      : (intentKind === "buff"
+        ? "+"
+        : (intentKind === "summon" ? "◇" : "※")));
 
   let stagger = "";
   if (enemy.maxStagger > 0) {
     const staggerPercent = Math.max(0, enemy.stagger / enemy.maxStagger * 100);
     stagger =
-      '<div class="mini-meter mini-meter--stagger">' +
-        '<div style="width:' + staggerPercent + '%"></div>' +
-      "</div>" +
-      '<span class="enemy-card__sub">무력화 ' +
-        enemy.stagger + " / " + enemy.maxStagger + "</span>";
+      '<div class="enemy-stagger-row">' +
+        '<span>무력화</span>' +
+        '<div class="mini-meter mini-meter--stagger">' +
+          '<div style="width:' + staggerPercent + '%"></div>' +
+        "</div>" +
+        '<strong>' + enemy.stagger + " / " + enemy.maxStagger + "</strong>" +
+      "</div>";
   }
 
   const statusNames = Object.keys(enemy.statuses);
@@ -184,20 +206,34 @@ function renderEnemy(battle, enemy, index) {
     : "";
 
   return (
-    '<button class="enemy-card' +
+    '<button class="enemy-card enemy-unit' +
       (selected ? " enemy-card--selected" : "") +
       (dead ? " enemy-card--dead" : "") + '"' +
       ' data-action="select-enemy" data-enemy-index="' + index + '"' +
       ' data-drop-enemy-index="' + index + '"' +
       (dead ? " disabled" : "") + ">" +
-      '<div class="enemy-card__top">' +
+      '<div class="enemy-intent-orb enemy-intent-orb--' + intentKind + '">' +
+        '<span class="enemy-intent-orb__mark">' + intentMark + "</span>" +
+        '<strong>' + intent.label + "</strong>" +
+        counter +
+      "</div>" +
+      '<div class="enemy-unit__portrait" aria-hidden="true">' +
+        '<span>' + enemy.name.slice(0, 1) + "</span>" +
+      "</div>" +
+      '<div class="enemy-unit__identity">' +
         '<span class="enemy-tier">' + enemy.tier + "</span>" +
         "<strong>" + enemy.name + "</strong>" +
       "</div>" +
-      '<div class="enemy-intent-inline">' + intent.label + counter + "</div>" +
-      '<div class="mini-meter"><div style="width:' + hpPercent + '%"></div></div>' +
-      '<span class="enemy-card__sub">HP ' + enemy.hp + " / " + enemy.maxHp +
-        " · 보호막 " + enemy.block + "</span>" +
+      '<div class="enemy-health-row">' +
+        '<div class="mini-meter"><div style="width:' + hpPercent + '%"></div></div>' +
+        '<strong>' + enemy.hp + " / " + enemy.maxHp + "</strong>" +
+      "</div>" +
+      '<div class="enemy-unit__subrow">' +
+        '<span>보호막 <strong>' + enemy.block + "</strong></span>" +
+        (enemy.staggeredTurns > 0
+          ? '<span class="enemy-staggered-badge">무력화 ' + enemy.staggeredTurns + "턴</span>"
+          : "") +
+      "</div>" +
       stagger +
       statuses +
       renderEnemySpecial(enemy) +
