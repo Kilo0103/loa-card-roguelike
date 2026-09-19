@@ -119,7 +119,7 @@ function dealCardDamage(
     enemy,
     options
   );
-  const multiplier = getAttackMultiplier(run);
+  const multiplier = getAttackMultiplier(run, enemy);
   const damage = Math.ceil((baseDamage + bonus) * multiplier);
 
   return dealDamageToEnemy(
