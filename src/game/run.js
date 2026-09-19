@@ -1,8 +1,13 @@
-import { REWARD_POOL, STARTING_DECK } from "../data/cards.js";
+import {
+  CLASS_REWARD_POOL,
+  COMMON_REWARD_POOL,
+  STARTING_DECK,
+} from "../data/cards.js";
 import { shuffle } from "./deck.js";
 
 export function createRun() {
   return {
+    classId: "warlord",
     maxHp: 70,
     hp: 70,
     deck: [...STARTING_DECK],
@@ -12,8 +17,44 @@ export function createRun() {
   };
 }
 
+function randomCard(pool, excluded) {
+  const candidates = shuffle(pool).filter(function notExcluded(cardId) {
+    return !excluded.includes(cardId);
+  });
+
+  return candidates[0] || null;
+}
+
 export function createCardRewards() {
-  return shuffle(REWARD_POOL).slice(0, 3);
+  const rewards = [];
+
+  const classCard = randomCard(CLASS_REWARD_POOL, rewards);
+  if (classCard) {
+    rewards.push(classCard);
+  }
+
+  const commonCard = randomCard(COMMON_REWARD_POOL, rewards);
+  if (commonCard) {
+    rewards.push(commonCard);
+  }
+
+  const randomPool = Math.random() < 0.5
+    ? CLASS_REWARD_POOL
+    : COMMON_REWARD_POOL;
+
+  let randomChoice = randomCard(randomPool, rewards);
+  if (!randomChoice) {
+    randomChoice = randomCard(
+      [...CLASS_REWARD_POOL, ...COMMON_REWARD_POOL],
+      rewards
+    );
+  }
+
+  if (randomChoice) {
+    rewards.push(randomChoice);
+  }
+
+  return rewards;
 }
 
 export function addCardToDeck(run, cardId) {
