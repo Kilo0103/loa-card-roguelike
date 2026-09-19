@@ -20,7 +20,8 @@ import {
 } from "./game/nodes.js";
 import {
   acquireMagicBook,
-  createMagicBookRewards,
+  getMagicBook,
+  rollMagicBookDrop,
 } from "./data/magicBooks.js";
 import {
   addCardToDeck,
@@ -48,8 +49,6 @@ const app = {
   notice: "",
   lastGoldReward: 0,
   pendingPotionDrop: null,
-  pendingMagicBookRewards: [],
-  afterMagicBookReward: "map",
   draggedHandIndex: null,
   draggedCardTarget: null,
   dragPreview: null,
@@ -127,36 +126,35 @@ function completeBattleNode() {
   advanceRun(app.run);
 }
 
+function grantBossMagicBookDrop(nodeType) {
+  if (nodeType !== "midboss" && nodeType !== "boss") {
+    return null;
+  }
+
+  const bookId = rollMagicBookDrop(app.run);
+  if (!bookId) {
+    return null;
+  }
+
+  const acquired = acquireMagicBook(app.run, bookId);
+  return acquired ? getMagicBook(bookId) : null;
+}
+
 function openRewards(goldReward) {
   const nodeType = app.battle.mapNodeType;
+  const droppedBook = grantBossMagicBookDrop(nodeType);
+
   completeBattleNode();
   app.mode = "reward";
   app.rewards = createCardRewards();
   app.lastGoldReward = goldReward;
   app.pendingPotionDrop = rollPotionDrop(app.run, nodeType);
-  app.pendingMagicBookRewards = nodeType === "midboss"
-    ? createMagicBookRewards(app.run, 3)
-    : [];
-  app.afterMagicBookReward = "map";
+
+  if (droppedBook) {
+    app.notice = droppedBook.name + " 마법서 획득";
+  }
+
   render(root, app);
-}
-
-function finishMagicBookRewardFlow(notice) {
-  if (app.pendingMagicBookRewards.length > 0) {
-    app.mode = "magic-book-reward";
-    app.notice = notice;
-    render(root, app);
-    return;
-  }
-
-  if (app.afterMagicBookReward === "field-clear") {
-    app.mode = "field-clear";
-    app.notice = notice;
-    render(root, app);
-    return;
-  }
-
-  openMap(notice);
 }
 
 function finishCardReward(notice) {
@@ -167,7 +165,7 @@ function finishCardReward(notice) {
     return;
   }
 
-  finishMagicBookRewardFlow(notice);
+  openMap(notice);
 }
 
 function finishBattleAction() {
@@ -175,12 +173,15 @@ function finishBattleAction() {
     const goldReward = awardBattleGold(app.run, app.battle.mapNodeType);
 
     if (app.battle.isFinalBoss) {
+      const droppedBook = grantBossMagicBookDrop("boss");
       completeBattleNode();
       app.lastGoldReward = goldReward;
       app.pendingPotionDrop = null;
-      app.pendingMagicBookRewards = createMagicBookRewards(app.run, 3);
-      app.afterMagicBookReward = "field-clear";
-      finishMagicBookRewardFlow("발탄 보상 마법서를 선택하세요.");
+      app.mode = "field-clear";
+      app.notice = droppedBook
+        ? droppedBook.name + " 마법서 획득"
+        : "";
+      render(root, app);
       return;
     }
 
@@ -280,8 +281,6 @@ function newRun() {
   app.notice = "";
   app.lastGoldReward = 0;
   app.pendingPotionDrop = null;
-  app.pendingMagicBookRewards = [];
-  app.afterMagicBookReward = "map";
   app.draggedHandIndex = null;
   app.draggedCardTarget = null;
   app.dragPreview = null;
@@ -426,7 +425,7 @@ root.addEventListener("click", function handleClick(event) {
     const added = addPotion(app.run, app.pendingPotionDrop);
     if (added) {
       app.pendingPotionDrop = null;
-      finishMagicBookRewardFlow("물약을 획득했습니다.");
+      openMap("물약을 획득했습니다.");
     }
     return;
   }
@@ -440,25 +439,14 @@ root.addEventListener("click", function handleClick(event) {
 
     if (replaced) {
       app.pendingPotionDrop = null;
-      finishMagicBookRewardFlow("물약을 교체했습니다.");
+      openMap("물약을 교체했습니다.");
     }
     return;
   }
 
   if (action === "decline-potion") {
     app.pendingPotionDrop = null;
-    finishMagicBookRewardFlow("물약을 포기했습니다.");
-    return;
-  }
-
-  if (action === "choose-magic-book") {
-    const bookId = button.dataset.bookId;
-    const acquired = acquireMagicBook(app.run, bookId);
-
-    if (acquired) {
-      app.pendingMagicBookRewards = [];
-      finishMagicBookRewardFlow("마법서를 획득했습니다.");
-    }
+    openMap("물약을 포기했습니다.");
     return;
   }
 
