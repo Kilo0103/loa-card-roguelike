@@ -190,13 +190,6 @@ export const ENCOUNTER_POOL = Object.freeze({
   ],
 });
 
-const TEMPORARY_BOSS_SCHEDULE = Object.freeze({
-  5: ["lugaru"],
-  10: ["lucas"],
-  15: ["black_mountain_predator"],
-  18: ["valtan"],
-});
-
 export function createEnemy(enemyId) {
   const template = ENEMY_LIBRARY[enemyId];
   if (!template) {
@@ -236,26 +229,58 @@ export function createEnemy(enemyId) {
   };
 }
 
-export function getEncounterForBattle(battleNumber) {
-  if (TEMPORARY_BOSS_SCHEDULE[battleNumber]) {
-    return TEMPORARY_BOSS_SCHEDULE[battleNumber];
-  }
+function pickEncounter(poolName, previousEncounterKey) {
+  const pool = ENCOUNTER_POOL[poolName];
+  const candidates = pool
+    .map(function encounterEntry(enemies, index) {
+      return {
+        key: poolName + ":" + index,
+        enemies,
+      };
+    })
+    .filter(function avoidImmediateRepeat(entry) {
+      return entry.key !== previousEncounterKey;
+    });
 
-  if (battleNumber % 4 === 0) {
-    const eliteIndex = Math.floor(battleNumber / 4 - 1) % ENCOUNTER_POOL.elite.length;
-    return ENCOUNTER_POOL.elite[eliteIndex];
-  }
+  const available = candidates.length > 0
+    ? candidates
+    : pool.map(function fallbackEntry(enemies, index) {
+        return {
+          key: poolName + ":" + index,
+          enemies,
+        };
+      });
 
-  let pool = ENCOUNTER_POOL.early;
-  if (battleNumber >= 11) {
-    pool = ENCOUNTER_POOL.late;
-  } else if (battleNumber >= 6) {
-    pool = ENCOUNTER_POOL.mid;
-  }
-
-  return pool[(battleNumber - 1) % pool.length];
+  return available[Math.floor(Math.random() * available.length)];
 }
 
-export function isFinalBossEncounter(encounter) {
-  return encounter.length === 1 && encounter[0] === "valtan";
+function normalPoolForRow(row) {
+  if (row < 5) {
+    return "early";
+  }
+
+  if (row < 10) {
+    return "mid";
+  }
+
+  return "late";
+}
+
+export function getEncounterForNode(node, previousEncounterKey) {
+  if (!node) {
+    throw new Error("Map node is required.");
+  }
+
+  if (node.type === "midboss" || node.type === "boss") {
+    return {
+      key: node.type + ":" + node.encounterId,
+      enemies: [node.encounterId],
+    };
+  }
+
+  if (node.type === "elite") {
+    return pickEncounter("elite", previousEncounterKey);
+  }
+
+  return pickEncounter(normalPoolForRow(node.row), previousEncounterKey);
 }
