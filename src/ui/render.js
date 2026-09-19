@@ -258,19 +258,34 @@ function renderPlayerDebuffs(battle) {
 
 function renderRewardCard(cardId, slotLabel) {
   const card = getCard(cardId);
+  const artLabel = card.type === "attack"
+    ? "ATK"
+    : (card.type === "defense"
+      ? "DEF"
+      : (card.type === "status" ? "STS" : "SKL"));
 
   return (
     '<button class="' + cardClass(card) +
-      ' reward-card" data-action="choose-reward" data-card-id="' + cardId + '">' +
-      '<div class="reward-slot">' + slotLabel + "</div>" +
-      '<div class="card__header">' +
-        '<span class="card__cost">' + card.cost + "</span>" +
-        '<span class="card__rarity">' + card.rarity + "</span>" +
+      ' reward-card reward-choice-card" data-action="choose-reward" data-card-id="' + cardId + '">' +
+      '<span class="reward-slot">' + slotLabel + "</span>" +
+      '<div class="reward-choice-card__frame">' +
+        '<div class="card__header">' +
+          '<span class="card__cost">' + card.cost + "</span>" +
+          '<div class="card__title-block">' +
+            '<strong class="card__name">' + card.name + "</strong>" +
+            '<span class="card__type">' + card.type + "</span>" +
+          "</div>" +
+          '<span class="card__rarity">' + card.rarity + "</span>" +
+        "</div>" +
+        '<div class="card__art reward-choice-card__art" aria-hidden="true">' +
+          '<span class="card__art-sigil">' + artLabel + "</span>" +
+        "</div>" +
+        '<div class="card__body">' +
+          "<p>" + card.description + "</p>" +
+          renderTags(card) +
+        "</div>" +
       "</div>" +
-      '<strong class="card__name">' + card.name + "</strong>" +
-      '<span class="card__type">' + card.type + "</span>" +
-      "<p>" + card.description + "</p>" +
-      renderTags(card) +
+      '<span class="reward-choice-card__select">이 카드 선택</span>' +
     "</button>"
   );
 }
@@ -581,24 +596,32 @@ function renderBondWorkshop(run, source) {
 
 function renderBondSelect(app) {
   return (
-    '<main class="center-screen bond-select-screen">' +
-      '<section class="panel bond-select-panel">' +
-        '<p class="eyebrow">ESTHER BOND</p>' +
-        "<h1>에스더와 결속</h1>" +
-        "<p>이번 런에서 함께할 에스더 한 명을 선택합니다. 선택 후 변경할 수 없습니다.</p>" +
+    '<main class="reward-screen game-shell reward-scene bond-select-screen">' +
+      '<section class="reward-stage bond-select-panel panel">' +
+        '<header class="reward-stage__header">' +
+          '<span class="eyebrow">ESTHER BOND</span>' +
+          "<h1>에스더와 결속</h1>" +
+          "<p>이번 런에서 함께할 에스더 한 명을 선택합니다. 선택 후 변경할 수 없습니다.</p>" +
+        "</header>" +
+        renderNotice(app) +
         '<div class="bond-select-grid">' +
           ESTHER_IDS.map(function estherOption(estherId) {
             const esther = getEsther(estherId);
             return (
               '<button class="bond-select-card" data-action="choose-bond" data-esther-id="' + estherId + '">' +
+                '<span class="bond-select-card__crest">' + esther.name.slice(0, 1) + "</span>" +
+                '<span class="eyebrow">ESTHER</span>' +
                 "<strong>" + esther.name + "</strong>" +
-                "<span>" + esther.role + "</span>" +
-                "<p>1강 · " + esther.descriptions[0] + "</p>" +
+                '<span class="bond-select-card__role">' + esther.role + "</span>" +
+                '<div class="bond-select-card__effect">' +
+                  '<small>결속 1강</small>' +
+                  "<p>" + esther.descriptions[0] + "</p>" +
+                "</div>" +
+                '<span class="bond-select-card__select">이 에스더와 결속</span>' +
               "</button>"
             );
           }).join("") +
         "</div>" +
-        renderNotice(app) +
       "</section>" +
     "</main>"
   );
@@ -652,21 +675,24 @@ function renderPotionInventory(run, battle) {
 function renderPotionReward(app) {
   const potion = getPotion(app.pendingPotionDrop);
   const isFull = app.run.potions.length >= MAX_POTIONS;
+  const iconText = potion.shortName
+    ? potion.shortName.slice(0, 1)
+    : potion.name.slice(0, 1);
 
   let actions = "";
 
   if (!isFull) {
     actions +=
-      '<button data-action="take-potion">획득하기</button>';
+      '<button class="reward-primary-button" data-action="take-potion">획득하기</button>';
   } else {
     actions +=
-      '<div class="potion-replace-list">' +
+      '<div class="potion-replace-list reward-replace-list">' +
         app.run.potions.map(function replaceOption(potionId, index) {
           const current = getPotion(potionId);
           return (
             '<button data-action="replace-potion" data-inventory-index="' + index + '">' +
-              '<strong>' + current.name + "</strong>" +
-              '<span>이 물약과 교체</span>' +
+              '<span class="reward-replace-list__icon">' + current.shortName.slice(0, 1) + "</span>" +
+              '<span><strong>' + current.name + "</strong><small>이 물약과 교체</small></span>" +
             "</button>"
           );
         }).join("") +
@@ -674,22 +700,33 @@ function renderPotionReward(app) {
   }
 
   actions +=
-    '<button class="secondary-button" data-action="decline-potion">포기하기</button>';
+    '<button class="secondary-button reward-decline-button" data-action="decline-potion">포기하기</button>';
 
   return (
-    '<main class="center-screen">' +
-      '<section class="panel node-panel potion-reward-panel">' +
-        '<p class="eyebrow">POTION DROP</p>' +
-        "<h1>" + potion.name + "</h1>" +
-        "<p>" + potion.description + "</p>" +
-        '<div class="potion-reward-card">' +
-          '<strong>' + potion.shortName + "</strong>" +
-          '<span>' + potion.description + "</span>" +
+    '<main class="reward-screen game-shell reward-scene potion-reward-scene">' +
+      '<section class="reward-stage panel">' +
+        '<header class="reward-stage__header">' +
+          '<span class="eyebrow">POTION DROP</span>' +
+          "<h1>물약 발견</h1>" +
+          "<p>전투 뒤에서 사용할 수 있는 소모품을 발견했습니다.</p>" +
+        "</header>" +
+        renderNotice(app) +
+        '<div class="potion-reward-focus">' +
+          '<div class="potion-reward-focus__icon">' + iconText + "</div>" +
+          '<div class="potion-reward-focus__info">' +
+            "<strong>" + potion.name + "</strong>" +
+            '<span>' + potion.shortName + "</span>" +
+            "<p>" + potion.description + "</p>" +
+          "</div>" +
+        "</div>" +
+        '<div class="reward-inventory-status">' +
+          '<span>물약 슬롯</span>' +
+          '<strong>' + app.run.potions.length + " / " + MAX_POTIONS + "</strong>" +
         "</div>" +
         (isFull
-          ? "<p>물약 슬롯이 가득 찼습니다. 교체할 물약을 선택하거나 포기하세요.</p>"
-          : "<p>현재 물약 " + app.run.potions.length + " / " + MAX_POTIONS + "</p>") +
-        actions +
+          ? "<p class="reward-guidance">슬롯이 가득 찼습니다. 교체할 물약을 선택하거나 포기하세요.</p>"
+          : "<p class="reward-guidance">빈 슬롯에 바로 보관할 수 있습니다.</p>") +
+        '<div class="reward-actions">' + actions + "</div>" +
       "</section>" +
     "</main>"
   );
@@ -858,28 +895,49 @@ function renderBattle(app) {
 
 function renderReward(app) {
   const labels = ["직업 카드", "공통 카드", "랜덤"];
+  const magicBookReward = app.lastMagicBookDrop
+    ? '<div class="reward-loot-card reward-loot-card--book">' +
+        '<span class="reward-loot-card__mark">B</span>' +
+        '<div><small>자동 획득 · 마법서 #' + app.lastMagicBookDrop.number + "</small>" +
+        "<strong>" + app.lastMagicBookDrop.name + "</strong>" +
+        "<p>" + app.lastMagicBookDrop.description + "</p></div>" +
+      "</div>"
+    : "";
 
   return (
-    '<main class="reward-screen game-shell">' +
-      '<section class="panel reward-panel">' +
-        '<p class="eyebrow">전투 승리</p>' +
-        "<h1>카드 보상</h1>" +
-        "<p>전투 보상 +" + app.lastGoldReward + "G · 현재 " + app.run.gold + "G</p>" +
-        (app.lastMagicBookDrop
-          ? "<p><strong>마법서 드랍 · " + app.lastMagicBookDrop.name + "</strong></p>"
-          : "") +
-        "<p>직업 1장, 공통 1장, 랜덤 1장. 한 장을 선택하거나 건너뜁니다.</p>" +
-        '<div class="reward-grid">' +
+    '<main class="reward-screen game-shell reward-scene">' +
+      '<section class="reward-stage panel">' +
+        '<header class="reward-stage__header">' +
+          '<span class="eyebrow">BATTLE CLEAR</span>' +
+          "<h1>전투 보상</h1>" +
+          "<p>카드 한 장을 선택해 덱에 추가하거나 건너뜁니다.</p>" +
+        "</header>" +
+        renderNotice(app) +
+        '<div class="reward-summary-strip">' +
+          '<div class="reward-loot-card reward-loot-card--gold">' +
+            '<span class="reward-loot-card__mark">G</span>' +
+            '<div><small>전투 보상</small><strong>+' + app.lastGoldReward + "G</strong>" +
+            '<p>현재 보유 ' + app.run.gold + "G</p></div>" +
+          "</div>" +
+          magicBookReward +
+        "</div>" +
+        '<div class="reward-section-heading">' +
+          '<div><span class="eyebrow">CARD REWARD</span><h2>카드 선택</h2></div>' +
+          '<span>1 / 3 선택</span>' +
+        "</div>" +
+        '<div class="reward-grid reward-card-grid">' +
           app.rewards.map(function rewardHtml(cardId, index) {
             return renderRewardCard(cardId, labels[index] || "보상");
           }).join("") +
         "</div>" +
-        (
-          hasMagicBook(app.run, "fate_reselection") && !app.rewardRerollUsed
-            ? '<button class="secondary-button reward-reroll" data-action="reroll-random-reward">운명의 재선택 · 랜덤 슬롯 재추첨</button>'
-            : ""
-        ) +
-        '<button class="secondary-button" data-action="skip-reward">건너뛰기</button>' +
+        '<div class="reward-footer-actions">' +
+          (
+            hasMagicBook(app.run, "fate_reselection") && !app.rewardRerollUsed
+              ? '<button class="secondary-button reward-reroll" data-action="reroll-random-reward">운명의 재선택 · 랜덤 슬롯 재추첨</button>'
+              : ""
+          ) +
+          '<button class="secondary-button reward-skip" data-action="skip-reward">카드 보상 건너뛰기</button>' +
+        "</div>" +
       "</section>" +
     "</main>"
   );
@@ -1180,17 +1238,33 @@ function renderDefeat(app) {
 }
 
 function renderFieldClear(app) {
+  const finalBook = app.lastMagicBookDrop
+    ? '<div class="reward-loot-card reward-loot-card--book">' +
+        '<span class="reward-loot-card__mark">B</span>' +
+        '<div><small>자동 획득 · 마법서 #' + app.lastMagicBookDrop.number + "</small>" +
+        "<strong>" + app.lastMagicBookDrop.name + "</strong>" +
+        "<p>" + app.lastMagicBookDrop.description + "</p></div>" +
+      "</div>"
+    : "";
+
   return (
-    '<main class="center-screen">' +
-      '<section class="panel result-panel">' +
-        '<p class="eyebrow">FIELD CLEAR</p>' +
-        "<h1>마수군단 클리어</h1>" +
-        "<p>마수군단장 발탄을 쓰러뜨렸습니다. +" + app.lastGoldReward + "G · 총 " + app.run.gold + "G</p>" +
-        (app.lastMagicBookDrop
-          ? "<p><strong>마법서 드랍 · " + app.lastMagicBookDrop.name + "</strong></p>"
-          : "") +
-        "<p>현재 Vertical Slice의 마지막입니다.</p>" +
-        '<button data-action="new-run">새 런 시작</button>' +
+    '<main class="reward-screen game-shell reward-scene">' +
+      '<section class="reward-stage panel result-panel result-panel--clear">' +
+        '<header class="reward-stage__header">' +
+          '<span class="eyebrow">FIELD CLEAR</span>' +
+          "<h1>마수군단 클리어</h1>" +
+          "<p>마수군단장 발탄을 쓰러뜨렸습니다.</p>" +
+        "</header>" +
+        '<div class="reward-summary-strip">' +
+          '<div class="reward-loot-card reward-loot-card--gold">' +
+            '<span class="reward-loot-card__mark">G</span>' +
+            '<div><small>최종 전투 보상</small><strong>+' + app.lastGoldReward + "G</strong>" +
+            '<p>총 보유 ' + app.run.gold + "G</p></div>" +
+          "</div>" +
+          finalBook +
+        "</div>" +
+        "<p class="reward-guidance">현재 Vertical Slice의 마지막입니다.</p>" +
+        '<button class="reward-primary-button" data-action="new-run">새 런 시작</button>' +
       "</section>" +
     "</main>"
   );
