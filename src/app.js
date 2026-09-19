@@ -547,6 +547,20 @@ loadSaveInput.addEventListener("change", function handleSaveFileSelected(event) 
   loadSaveFile(file);
 });
 
+root.addEventListener("pointerdown", function handleTouchCardPointer(event) {
+  if (
+    app.mode !== "battle" ||
+    event.pointerType !== "touch"
+  ) {
+    return;
+  }
+
+  const card = event.target.closest("[data-drag-card-index]");
+  if (card) {
+    card.setAttribute("draggable", "false");
+  }
+});
+
 root.addEventListener("dragstart", function handleDragStart(event) {
   if (app.mode !== "battle") {
     return;
@@ -888,4 +902,42 @@ root.addEventListener("click", function handleClick(event) {
   }
 });
 
-render(root, app);
+
+function focusMobileView() {
+  if (!window.matchMedia("(max-width: 760px)").matches) {
+    return;
+  }
+
+  window.requestAnimationFrame(function focusRenderedView() {
+    if (app.mode === "map") {
+      const mapFrame = root.querySelector(".map-scroll-frame");
+      const target =
+        root.querySelector(".map-node--current") ||
+        root.querySelector(".map-node--available:not(:disabled)");
+
+      if (mapFrame && target) {
+        const frameRect = mapFrame.getBoundingClientRect();
+        const targetRect = target.getBoundingClientRect();
+        mapFrame.scrollLeft +=
+          targetRect.left - frameRect.left - frameRect.width / 2 + targetRect.width / 2;
+        mapFrame.scrollTop +=
+          targetRect.top - frameRect.top - frameRect.height * 0.58;
+      }
+    }
+
+    if (app.mode === "battle") {
+      const hand = root.querySelector(".battle-hand");
+      if (hand) {
+        hand.scrollLeft = 0;
+      }
+    }
+  });
+}
+
+const originalRender = render;
+function renderApp() {
+  originalRender(root, app);
+  focusMobileView();
+}
+
+renderApp();
