@@ -23,6 +23,12 @@ import {
   createCardRewards,
   createRun,
 } from "./game/run.js";
+import {
+  addPotion,
+  replacePotion,
+  rollPotionDrop,
+  usePotion,
+} from "./game/potions.js";
 import { render } from "./ui/render.js";
 
 const root = document.querySelector("#app");
@@ -36,6 +42,7 @@ const app = {
   event: null,
   notice: "",
   lastGoldReward: 0,
+  pendingPotionDrop: null,
   draggedHandIndex: null,
   draggedCardTarget: null,
   dragPreview: null,
@@ -114,11 +121,24 @@ function completeBattleNode() {
 }
 
 function openRewards(goldReward) {
+  const nodeType = app.battle.mapNodeType;
   completeBattleNode();
   app.mode = "reward";
   app.rewards = createCardRewards();
   app.lastGoldReward = goldReward;
+  app.pendingPotionDrop = rollPotionDrop(app.run, nodeType);
   render(root, app);
+}
+
+function finishCardReward(notice) {
+  if (app.pendingPotionDrop) {
+    app.mode = "potion-reward";
+    app.notice = notice;
+    render(root, app);
+    return;
+  }
+
+  openMap(notice);
 }
 
 function finishBattleAction() {
@@ -228,6 +248,7 @@ function newRun() {
   app.event = null;
   app.notice = "";
   app.lastGoldReward = 0;
+  app.pendingPotionDrop = null;
   app.draggedHandIndex = null;
   app.draggedCardTarget = null;
   app.dragPreview = null;
@@ -359,12 +380,52 @@ root.addEventListener("click", function handleClick(event) {
 
   if (action === "choose-reward") {
     addCardToDeck(app.run, button.dataset.cardId);
-    openMap("카드를 덱에 추가했습니다.");
+    finishCardReward("카드를 덱에 추가했습니다.");
     return;
   }
 
   if (action === "skip-reward") {
-    openMap("카드 보상을 건너뛰었습니다.");
+    finishCardReward("카드 보상을 건너뛰었습니다.");
+    return;
+  }
+
+  if (action === "take-potion") {
+    const added = addPotion(app.run, app.pendingPotionDrop);
+    if (added) {
+      app.pendingPotionDrop = null;
+      openMap("물약을 획득했습니다.");
+    }
+    return;
+  }
+
+  if (action === "replace-potion") {
+    const replaced = replacePotion(
+      app.run,
+      Number(button.dataset.inventoryIndex),
+      app.pendingPotionDrop
+    );
+
+    if (replaced) {
+      app.pendingPotionDrop = null;
+      openMap("물약을 교체했습니다.");
+    }
+    return;
+  }
+
+  if (action === "decline-potion") {
+    app.pendingPotionDrop = null;
+    openMap("물약을 포기했습니다.");
+    return;
+  }
+
+  if (action === "use-potion") {
+    const result = usePotion(
+      app.run,
+      app.battle,
+      Number(button.dataset.inventoryIndex)
+    );
+    app.notice = result.message;
+    render(root, app);
     return;
   }
 
