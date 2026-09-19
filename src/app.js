@@ -40,9 +40,18 @@ import {
   rollPotionDrop,
   usePotion,
 } from "./game/potions.js";
+import {
+  createSaveFileName,
+  parseSaveData,
+  restoreAppState,
+  stringifySaveData,
+} from "./game/save.js";
 import { render } from "./ui/render.js";
 
 const root = document.querySelector("#app");
+const downloadSaveButton = document.querySelector("#download-save");
+const loadSaveButton = document.querySelector("#load-save");
+const loadSaveInput = document.querySelector("#load-save-input");
 
 const app = {
   mode: "map",
@@ -61,6 +70,47 @@ const app = {
   dragPreview: null,
   dragHandTop: 0,
 };
+
+function downloadCurrentSave() {
+  clearCardDrag();
+
+  const json = stringifySaveData(app);
+  const blob = new Blob([json], {
+    type: "application/json;charset=utf-8",
+  });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+
+  anchor.href = url;
+  anchor.download = createSaveFileName();
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(url);
+
+  app.notice = "현재 런을 JSON 파일로 저장했습니다.";
+  render(root, app);
+}
+
+async function loadSaveFile(file) {
+  if (!file) {
+    return;
+  }
+
+  try {
+    const text = await file.text();
+    const saveData = parseSaveData(text);
+    clearCardDrag();
+    restoreAppState(app, saveData);
+    app.notice = "저장 파일을 불러왔습니다.";
+    render(root, app);
+  } catch (error) {
+    app.notice = "저장 파일 불러오기 실패: " + error.message;
+    render(root, app);
+  } finally {
+    loadSaveInput.value = "";
+  }
+}
 
 function openMap(notice = "") {
   app.mode = "map";
@@ -300,6 +350,19 @@ function newRun() {
   app.mode = "map";
   render(root, app);
 }
+
+downloadSaveButton.addEventListener("click", function handleSaveDownload() {
+  downloadCurrentSave();
+});
+
+loadSaveButton.addEventListener("click", function handleLoadSave() {
+  loadSaveInput.click();
+});
+
+loadSaveInput.addEventListener("change", function handleSaveFileSelected(event) {
+  const file = event.target.files && event.target.files[0];
+  loadSaveFile(file);
+});
 
 root.addEventListener("dragstart", function handleDragStart(event) {
   if (app.mode !== "battle") {
