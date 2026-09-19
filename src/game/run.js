@@ -14,6 +14,7 @@ export function createRun() {
     deck: [...STARTING_DECK],
     gold: 0,
     potions: [],
+    magicBooks: [],
     battleNumber: 1,
     victories: 0,
     map: createMap(),
