@@ -57,14 +57,27 @@ function renderTags(card) {
 function renderCard(run, battle, cardId, index) {
   const card = getCard(cardId);
   const cost = getEffectiveCardCost(run, battle, card);
-  const disabled = card.unplayable || cost > battle.energy;
+  const contingency = battle.playerStatuses.contingencyRemaining > 0;
+  const retainMode = battle.playerStatuses.retainSelectionMode;
+  const selectedForRetain = battle.playerStatuses.retainedHandIndex === index;
+  const normalDisabled = card.unplayable || cost > battle.energy;
+  const disabled = contingency || retainMode ? false : normalDisabled;
+  const action = contingency
+    ? "discard-contingency-card"
+    : (retainMode ? "select-retain-card" : "play-card");
+  const draggable = !contingency && !retainMode && !normalDisabled;
   const costText = card.unplayable ? "—" : String(cost);
+  const classes = cardClass(card) +
+    (selectedForRetain ? " card--retained" : "") +
+    (contingency ? " card--setup-choice" : "") +
+    (retainMode ? " card--retain-choice" : "");
 
   return (
-    '<button class="' + cardClass(card) + '" data-action="play-card" data-index="' + index + '"' +
+    '<button class="' + classes + '" data-action="' + action + '" data-index="' + index + '"' +
     ' data-drag-card-index="' + index + '"' +
     ' data-card-target="' + card.target + '"' +
-    (disabled ? ' draggable="false" disabled' : ' draggable="true"') + ">" +
+    (draggable ? ' draggable="true"' : ' draggable="false"') +
+    (disabled ? " disabled" : "") + ">" +
       '<div class="card__header">' +
         '<span class="card__cost">' + costText + "</span>" +
         '<span class="card__rarity">' + card.rarity + "</span>" +
@@ -463,6 +476,17 @@ function renderPotionReward(app) {
 function renderBattle(app) {
   const run = app.run;
   const battle = app.battle;
+  const setupText = battle.playerStatuses.contingencyRemaining > 0
+    ? '<div class="setup-banner">예비 계획 · 버릴 카드 ' +
+        battle.playerStatuses.contingencyRemaining +
+        "장을 선택하세요.</div>"
+    : "";
+
+  const retainedIndex = battle.playerStatuses.retainedHandIndex;
+  const retainedName = retainedIndex !== null && battle.hand[retainedIndex]
+    ? getCard(battle.hand[retainedIndex]).name
+    : null;
+
   const chargeText = battle.charge
     ? '<div class="charge-banner">차징 중 · ' +
         battle.charge.card.name + " " +
@@ -489,6 +513,7 @@ function renderBattle(app) {
       renderMagicBookBar(run) +
       renderPlayerDebuffs(battle) +
       renderPotionInventory(run, battle) +
+      setupText +
       chargeText +
 
       '<section class="player-drop-zone panel" data-drop-self>' +
@@ -515,6 +540,18 @@ function renderBattle(app) {
           battle.drawPile.length + "</strong></div>" +
         '<div class="pile panel"><span>버림</span><strong>' +
           battle.discardPile.length + "</strong></div>" +
+        '<div class="pile panel"><span>소멸</span><strong>' +
+          battle.exhaustPile.length + "</strong></div>" +
+        (
+          hasMagicBook(run, "fixed_memory") &&
+          battle.playerStatuses.contingencyRemaining === 0
+            ? '<button class="secondary-button retain-button' +
+              (battle.playerStatuses.retainSelectionMode ? " retain-button--active" : "") +
+              '" data-action="toggle-retain-mode">' +
+              (retainedName ? "기억 고정 · " + retainedName : "기억 고정") +
+              "</button>"
+            : ""
+        ) +
         (canEscapeBattle(run, battle)
           ? '<button class="secondary-button escape-button" data-action="escape-battle">전투 이탈</button>'
           : "") +
