@@ -96,6 +96,8 @@ function renderCard(run, battle, cardId, index) {
     '<button class="' + classes + '" data-action="' + action + '" data-index="' + index + '"' +
     ' data-drag-card-index="' + index + '"' +
     ' data-card-target="' + card.target + '"' +
+    ' aria-label="' + card.name + ' · ' + card.description + '"' +
+    ' title="' + card.name + ' · ' + card.description + '"' +
     ' style="--hand-rotate:' + rotation.toFixed(2) + 'deg;--hand-drop:' +
       drop.toFixed(1) + 'px;--hand-z:' + (20 + index) + '"' +
     (draggable ? ' draggable="true"' : ' draggable="false"') +
@@ -211,6 +213,8 @@ function renderEnemy(battle, enemy, index) {
       (dead ? " enemy-card--dead" : "") + '"' +
       ' data-action="select-enemy" data-enemy-index="' + index + '"' +
       ' data-drop-enemy-index="' + index + '"' +
+      ' aria-pressed="' + (selected ? "true" : "false") + '"' +
+      ' aria-label="' + enemy.name + ' · HP ' + enemy.hp + ' / ' + enemy.maxHp + ' · ' + intent.label + '"' +
       (dead ? " disabled" : "") + ">" +
       '<div class="enemy-intent-orb enemy-intent-orb--' + intentKind + '">' +
         '<span class="enemy-intent-orb__mark">' + intentMark + "</span>" +
@@ -266,7 +270,9 @@ function renderRewardCard(cardId, slotLabel) {
 
   return (
     '<button class="' + cardClass(card) +
-      ' reward-card reward-choice-card" data-action="choose-reward" data-card-id="' + cardId + '">' +
+      ' reward-card reward-choice-card" data-action="choose-reward" data-card-id="' + cardId + '"' +
+      ' aria-label="' + slotLabel + ' · ' + card.name + ' · ' + card.description + '"' +
+      ' title="' + card.name + ' · ' + card.description + '">' +
       '<span class="reward-slot">' + slotLabel + "</span>" +
       '<div class="reward-choice-card__frame">' +
         '<div class="card__header">' +
@@ -379,6 +385,7 @@ function renderMapNode(map, node, availableIds, currentNode) {
       ' style="left:' + position.xPercent + '%;top:' + position.y + 'px"' +
       ' data-action="select-map-node"' +
       ' data-node-id="' + node.id + '"' +
+      ' aria-label="F' + (node.row + 1) + ' · ' + label + '"' +
       disabled + ">" +
       '<span class="map-node__halo" aria-hidden="true"></span>' +
       '<span class="map-node__mark">' + MAP_TYPE_MARKS[node.type] + "</span>" +
@@ -876,7 +883,9 @@ function renderBattle(app) {
           "</div>" +
         "</section>" +
 
-        '<section class="hand battle-hand" aria-label="손패">' +
+        '<section class="hand battle-hand' +
+          (battle.hand.length >= 8 ? " battle-hand--dense" : "") +
+          '" aria-label="손패">' +
           battle.hand.map(function cardHtml(cardId, index) {
             return renderCard(run, battle, cardId, index);
           }).join("") +
