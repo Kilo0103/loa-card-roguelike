@@ -604,8 +604,9 @@ function renderPotionReward(app) {
 function renderBattle(app) {
   const run = app.run;
   const battle = app.battle;
+  const hpPercent = Math.max(0, Math.min(100, run.hp / run.maxHp * 100));
   const setupText = battle.playerStatuses.contingencyRemaining > 0
-    ? '<div class="setup-banner">예비 계획 · 버릴 카드 ' +
+    ? '<div class="setup-banner battle-alert">예비 계획 · 버릴 카드 ' +
         battle.playerStatuses.contingencyRemaining +
         "장을 선택하세요.</div>"
     : "";
@@ -616,97 +617,146 @@ function renderBattle(app) {
     : null;
 
   const chargeText = battle.charge
-    ? '<div class="charge-banner">차징 중 · ' +
+    ? '<div class="charge-banner battle-alert">차징 중 · ' +
         battle.charge.card.name + " " +
         battle.charge.stage + " / " +
         battle.charge.card.charge.stages.length +
         "단계 · 같은 카드는 추가 기본 코스트 0</div>"
     : "";
 
+  const bondButton = run.bond && run.bond.estherId
+    ? '<button class="bond-use-button combat-action-button" data-action="use-bond"' +
+      (canUseBond(run, battle) ? "" : " disabled") + ">" +
+      '<span class="combat-action-button__label">결속</span>' +
+      '<strong>' + getEsther(run.bond.estherId).name + "</strong>" +
+      '<small>' + (run.bond.ready ? "READY" : run.bond.completedBattles + "/2") + "</small>" +
+      "</button>"
+    : "";
+
+  const retainButton =
+    hasMagicBook(run, "fixed_memory") &&
+    battle.playerStatuses.contingencyRemaining === 0
+      ? '<button class="secondary-button retain-button combat-action-button' +
+        (battle.playerStatuses.retainSelectionMode ? " retain-button--active" : "") +
+        '" data-action="toggle-retain-mode">' +
+        '<span class="combat-action-button__label">마법서</span>' +
+        '<strong>' + (retainedName ? retainedName : "기억 고정") + "</strong>" +
+        '<small>' + (retainedName ? "보존 대상" : "카드 선택") + "</small>" +
+        "</button>"
+      : "";
+
+  const escapeButton = canEscapeBattle(run, battle)
+    ? '<button class="secondary-button escape-button combat-action-button" data-action="escape-battle">' +
+        '<span class="combat-action-button__label">특수</span>' +
+        "<strong>전투 이탈</strong>" +
+        "<small>보상 포기</small>" +
+      "</button>"
+    : "";
+
   return (
-    '<main class="game-shell">' +
-      '<header class="topbar panel">' +
-        '<div><span class="label">HP</span><strong>' +
-          run.hp + " / " + run.maxHp + "</strong></div>" +
-        '<div><span class="label">보호막</span><strong>' +
-          battle.playerBlock + "</strong></div>" +
-        '<div><span class="label">코스트</span><strong>' +
-          battle.energy + " / " + getPlayerMaxEnergy(run) + "</strong></div>" +
-        '<div><span class="label">골드</span><strong>' +
-          run.gold + "G</strong></div>" +
-        '<div><span class="label">덱</span><strong>' +
-          run.deck.length + "장</strong></div>" +
-      "</header>" +
+    '<main class="game-shell battle-screen">' +
+      '<section class="battle-shell">' +
+        '<header class="battle-topstrip">' +
+          '<div class="battle-topstrip__encounter">' +
+            '<span class="eyebrow">' + (MAP_TYPE_LABELS[battle.mapNodeType] || "전투") + "</span>" +
+            "<strong>" + battle.enemies.map(function enemyName(enemy) {
+              return enemy.name;
+            }).join(" · ") + "</strong>" +
+            '<span class="battle-turn">TURN ' + battle.turn + "</span>" +
+          "</div>" +
+          '<div class="battle-topstrip__meta">' +
+            '<span><b>' + run.gold + "</b> G</span>" +
+            '<span>덱 <b>' + run.deck.length + "</b></span>" +
+            '<span>드로우 <b>' + battle.drawPile.length + "</b></span>" +
+            '<span>버림 <b>' + battle.discardPile.length + "</b></span>" +
+            '<span>소멸 <b>' + battle.exhaustPile.length + "</b></span>" +
+          "</div>" +
+        "</header>" +
 
-      renderMagicBookBar(run) +
-      renderBondBar(run) +
-      renderPlayerDebuffs(battle) +
-      renderPotionInventory(run, battle) +
-      setupText +
-      chargeText +
+        renderNotice(app) +
+        setupText +
+        chargeText +
 
-      '<section class="player-drop-zone panel" data-drop-self>' +
-        '<div><span class="eyebrow">WARLORD</span><strong>플레이어</strong></div>' +
-        '<div><span>HP ' + run.hp + " / " + run.maxHp + "</span>" +
-        '<span>보호막 ' + battle.playerBlock + "</span></div>" +
-        '<small>자기 대상 카드를 여기로 드롭</small>' +
-      "</section>" +
+        '<section class="battle-stage">' +
+          '<div class="battlefield battle-arena">' +
+            '<div class="battlefield__heading battle-arena__heading">' +
+              '<div><span class="eyebrow">BEAST LEGION</span><h1>전장</h1></div>' +
+              "<p>적의 의도를 읽고 카드를 사용하세요.</p>" +
+            "</div>" +
+            '<div class="enemy-grid battle-enemy-line">' +
+              battle.enemies.map(function enemyHtml(enemy, index) {
+                return renderEnemy(battle, enemy, index);
+              }).join("") +
+            "</div>" +
+          "</div>" +
 
-      '<section class="battlefield panel">' +
-        '<div class="battlefield__heading">' +
-          '<div><span class="eyebrow">BEAST LEGION</span><h1>마수군단</h1></div>' +
-          "<p>카드를 클릭하거나 원하는 적에게 드래그해서 사용하세요.</p>" +
-        "</div>" +
-        '<div class="enemy-grid">' +
-          battle.enemies.map(function enemyHtml(enemy, index) {
-            return renderEnemy(battle, enemy, index);
+          '<section class="player-hud player-drop-zone" data-drop-self>' +
+            '<div class="player-hud__identity">' +
+              '<span class="player-hud__class">WARLORD</span>' +
+              '<div class="player-hud__avatar">W</div>' +
+              '<div class="player-hud__name">' +
+                "<strong>워로드</strong>" +
+                "<small>자기 대상 카드를 이 영역으로 드롭</small>" +
+              "</div>" +
+            "</div>" +
+            '<div class="player-hud__vitals">' +
+              '<div class="player-hud__vital-row">' +
+                '<span>HP</span>' +
+                '<div class="player-hp-meter"><div style="width:' + hpPercent + '%"></div></div>' +
+                "<strong>" + run.hp + " / " + run.maxHp + "</strong>" +
+              "</div>" +
+              '<div class="player-hud__secondary">' +
+                '<span class="player-block-badge">보호막 <strong>' + battle.playerBlock + "</strong></span>" +
+                renderPlayerDebuffs(battle) +
+              "</div>" +
+            "</div>" +
+            '<div class="player-energy">' +
+              '<span>코스트</span>' +
+              "<strong>" + battle.energy + "</strong>" +
+              "<small>/ " + getPlayerMaxEnergy(run) + "</small>" +
+            "</div>" +
+          "</section>" +
+        "</section>" +
+
+        '<section class="battle-resource-row">' +
+          renderPotionInventory(run, battle) +
+          renderBondBar(run) +
+          renderMagicBookBar(run) +
+        "</section>" +
+
+        '<section class="combat-command-bar">' +
+          '<div class="combat-command-bar__left">' +
+            '<div class="pile battle-pile"><span>드로우</span><strong>' +
+              battle.drawPile.length + "</strong></div>" +
+            '<div class="pile battle-pile"><span>버림</span><strong>' +
+              battle.discardPile.length + "</strong></div>" +
+            '<div class="pile battle-pile"><span>소멸</span><strong>' +
+              battle.exhaustPile.length + "</strong></div>" +
+          "</div>" +
+          '<div class="combat-command-bar__actions">' +
+            retainButton +
+            bondButton +
+            escapeButton +
+            '<button class="end-turn battle-end-turn" data-action="end-turn">' +
+              '<span>행동 완료</span><strong>턴 종료</strong>' +
+            "</button>" +
+          "</div>" +
+        "</section>" +
+
+        '<section class="hand battle-hand" aria-label="손패">' +
+          battle.hand.map(function cardHtml(cardId, index) {
+            return renderCard(run, battle, cardId, index);
           }).join("") +
-        "</div>" +
-      "</section>" +
+        "</section>" +
 
-      '<section class="combat-info">' +
-        '<div class="pile panel"><span>드로우</span><strong>' +
-          battle.drawPile.length + "</strong></div>" +
-        '<div class="pile panel"><span>버림</span><strong>' +
-          battle.discardPile.length + "</strong></div>" +
-        '<div class="pile panel"><span>소멸</span><strong>' +
-          battle.exhaustPile.length + "</strong></div>" +
-        (
-          hasMagicBook(run, "fixed_memory") &&
-          battle.playerStatuses.contingencyRemaining === 0
-            ? '<button class="secondary-button retain-button' +
-              (battle.playerStatuses.retainSelectionMode ? " retain-button--active" : "") +
-              '" data-action="toggle-retain-mode">' +
-              (retainedName ? "기억 고정 · " + retainedName : "기억 고정") +
-              "</button>"
-            : ""
-        ) +
-        (run.bond && run.bond.estherId
-          ? '<button class="bond-use-button" data-action="use-bond"' +
-            (canUseBond(run, battle) ? "" : " disabled") + ">" +
-            getEsther(run.bond.estherId).name + " 결속 · " +
-            (run.bond.ready ? "READY" : run.bond.completedBattles + "/2") +
-            "</button>"
-          : "") +
-        (canEscapeBattle(run, battle)
-          ? '<button class="secondary-button escape-button" data-action="escape-battle">전투 이탈</button>'
-          : "") +
-        '<button class="end-turn" data-action="end-turn">턴 종료</button>' +
-      "</section>" +
-
-      '<section class="hand" aria-label="손패">' +
-        battle.hand.map(function cardHtml(cardId, index) {
-          return renderCard(run, battle, cardId, index);
-        }).join("") +
-      "</section>" +
-
-      '<section class="battle-log panel">' +
-        "<h2>전투 로그</h2>" +
-        "<div>" +
-          battle.log.map(function logHtml(entry) {
-            return "<p>" + entry + "</p>";
-          }).join("") +
-        "</div>" +
+        '<details class="battle-log battle-log--compact panel">' +
+          "<summary>전투 로그 · 최근 " + Math.min(18, battle.log.length) + "개</summary>" +
+          "<div>" +
+            battle.log.map(function logHtml(entry) {
+              return "<p>" + entry + "</p>";
+            }).join("") +
+          "</div>" +
+        "</details>" +
       "</section>" +
     "</main>"
   );
