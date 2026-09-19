@@ -677,6 +677,77 @@ function renderShopMagicBook(app) {
   );
 }
 
+
+function renderShopPotion(app, item, index) {
+  const potion = getPotion(item.potionId);
+  const full = app.run.potions.length >= MAX_POTIONS;
+  const duplicate = app.run.potions.includes(item.potionId);
+  const affordable = app.run.gold >= item.price;
+  const disabled = item.sold || full || duplicate || !affordable;
+
+  let stateText = item.price + "G";
+  if (item.sold) {
+    stateText = "판매 완료";
+  } else if (duplicate) {
+    stateText = "보유 중";
+  } else if (full) {
+    stateText = "슬롯 가득 참";
+  }
+
+  return (
+    '<div class="shop-item shop-item--potion">' +
+      '<div class="shop-potion-card">' +
+        '<span class="eyebrow">POTION</span>' +
+        "<strong>" + potion.name + "</strong>" +
+        "<p>" + potion.description + "</p>" +
+      "</div>" +
+      '<button data-action="buy-shop-potion" data-item-index="' + index + '"' +
+        (disabled ? " disabled" : "") + ">" +
+        stateText +
+      "</button>" +
+    "</div>"
+  );
+}
+
+function renderCardRemovalService(app) {
+  const service = app.shop.cardRemoval;
+  if (!service) {
+    return "";
+  }
+
+  const affordable = app.run.gold >= service.price;
+  const globallyDisabled =
+    service.used ||
+    app.run.deck.length <= 1 ||
+    !affordable;
+
+  const serviceState = service.used
+    ? "이 상점에서 사용 완료"
+    : service.price + "G · 카드 1장 제거";
+
+  return (
+    '<section class="panel card-removal-panel">' +
+      '<div class="card-removal-heading">' +
+        '<div><span class="eyebrow">DECK SERVICE</span><h2>카드 제거</h2></div>' +
+        "<strong>" + serviceState + "</strong>" +
+      "</div>" +
+      "<p>현재 덱에서 카드 1장을 영구 제거합니다. 한 상점에서 1회만 사용할 수 있습니다.</p>" +
+      '<div class="deck-removal-list">' +
+        app.run.deck.map(function removalCard(cardId, index) {
+          const card = getCard(cardId);
+          return (
+            '<button data-action="remove-shop-card" data-deck-index="' + index + '"' +
+              (globallyDisabled ? " disabled" : "") + ">" +
+              "<strong>" + card.name + "</strong>" +
+              '<span>' + card.cost + "코스트 · " + card.type + "</span>" +
+            "</button>"
+          );
+        }).join("") +
+      "</div>" +
+    "</section>"
+  );
+}
+
 function renderShop(app) {
   return (
     '<main class="game-shell special-screen">' +
@@ -690,7 +761,11 @@ function renderShop(app) {
           return renderShopItem(app, item, index);
         }).join("") +
         renderShopMagicBook(app) +
+        app.shop.potionItems.map(function potionHtml(item, index) {
+          return renderShopPotion(app, item, index);
+        }).join("") +
       "</section>" +
+      renderCardRemovalService(app) +
       '<button class="secondary-button special-leave" data-action="leave-shop">상점 나가기</button>' +
     "</main>"
   );
