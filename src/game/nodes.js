@@ -3,7 +3,12 @@ import {
   COMMON_REWARD_POOL,
   getCard,
 } from "../data/cards.js";
-import { hasMagicBook } from "../data/magicBooks.js";
+import {
+  acquireMagicBook,
+  getAvailableMagicBookIds,
+  getMagicBook,
+  hasMagicBook,
+} from "../data/magicBooks.js";
 import { shuffle } from "./deck.js";
 
 const GOLD_REWARDS = Object.freeze({
@@ -18,6 +23,8 @@ const CARD_PRICES = Object.freeze({
   uncommon: 50,
   rare: 70,
 });
+
+const MAGIC_BOOK_PRICE = 100;
 
 const EVENT_LIBRARY = Object.freeze([
   "abandoned_supplies",
@@ -60,6 +67,10 @@ export function createShop() {
   const commonCards = shuffle(COMMON_REWARD_POOL).slice(0, 1);
   const cardIds = [...classCards, ...commonCards];
 
+  const availableBooks = getAvailableMagicBookIds({
+    magicBooks: [],
+  });
+
   return {
     items: cardIds.map(function shopItem(cardId) {
       return {
@@ -68,6 +79,44 @@ export function createShop() {
         sold: false,
       };
     }),
+    magicBookItem: {
+      bookId: availableBooks[Math.floor(Math.random() * availableBooks.length)] || null,
+      price: MAGIC_BOOK_PRICE,
+      sold: false,
+    },
+  };
+}
+
+export function buyShopMagicBook(run, shop) {
+  const item = shop.magicBookItem;
+
+  if (!item || !item.bookId || item.sold) {
+    return {
+      success: false,
+      message: "이미 판매된 마법서입니다.",
+    };
+  }
+
+  if (run.gold < item.price) {
+    return {
+      success: false,
+      message: "골드가 부족합니다.",
+    };
+  }
+
+  if (!acquireMagicBook(run, item.bookId)) {
+    return {
+      success: false,
+      message: "현재 획득할 수 없는 마법서입니다.",
+    };
+  }
+
+  run.gold -= item.price;
+  item.sold = true;
+
+  return {
+    success: true,
+    message: getMagicBook(item.bookId).name + " 구매 완료",
   };
 }
 
