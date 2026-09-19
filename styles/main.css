@@ -1324,3 +1324,104 @@ button:not(:disabled) {
     flex: 1 1 0;
   }
 }
+
+
+/* Expanded shop */
+.shop-potion-card {
+  flex: 1 1 auto;
+  min-height: 180px;
+  padding: 18px;
+  border: 1px solid rgba(118, 188, 174, 0.22);
+  border-radius: 16px;
+  background:
+    linear-gradient(180deg, rgba(41, 93, 84, 0.24), rgba(22, 29, 29, 0.94));
+}
+
+.shop-potion-card strong {
+  display: block;
+  margin-top: 10px;
+  font-size: 18px;
+}
+
+.shop-potion-card p {
+  margin-top: 10px;
+  color: #a9bdb7;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.card-removal-panel {
+  margin-top: 22px;
+  padding: 18px;
+}
+
+.card-removal-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.card-removal-heading h2 {
+  margin: 3px 0 0;
+}
+
+.card-removal-heading > strong {
+  font-size: 13px;
+}
+
+.card-removal-panel > p {
+  color: #9ca6ba;
+  font-size: 12px;
+}
+
+.deck-removal-list {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.deck-removal-list button {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  color: #e9edf7;
+  background: #252b38;
+  text-align: left;
+}
+
+.deck-removal-list button:hover:not(:disabled) {
+  border-color: rgba(232, 135, 135, 0.65);
+  background: rgba(95, 47, 47, 0.45);
+}
+
+.deck-removal-list button span {
+  color: #929caf;
+  font-size: 10px;
+}
+
+.deck-removal-list button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+@media (max-width: 900px) {
+  .deck-removal-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 520px) {
+  .deck-removal-list {
+    grid-template-columns: 1fr;
+  }
+
+  .card-removal-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
