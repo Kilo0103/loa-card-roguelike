@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="LOA Card Roguelike vertical slice prototype" />
+  <title>LOA Card Roguelike — Prototype</title>
+  <link rel="stylesheet" href="./styles/main.css" />
+</head>
+<body>
+  <div class="save-toolbar" aria-label="저장 관리">
+    <button id="download-save" type="button">저장 파일 다운로드</button>
+    <button id="load-save" type="button">저장 파일 불러오기</button>
+    <input
+      id="load-save-input"
+      type="file"
+      accept=".json,application/json"
+      hidden
+    />
+  </div>
+  <div id="app"></div>
+  <script type="module" src="./src/app.js"></script>
+</body>
+</html>
