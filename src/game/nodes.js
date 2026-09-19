@@ -30,6 +30,7 @@ const EVENT_LIBRARY = Object.freeze([
   "abandoned_supplies",
   "beast_altar",
   "wandering_mercenary",
+  "sealed_magic_book",
 ]);
 
 function randomClassCard() {
@@ -188,6 +189,38 @@ function createBeastAltarEvent() {
   };
 }
 
+function createSealedMagicBookEvent(run) {
+  const availableBooks = getAvailableImplementedMagicBookIds(run);
+
+  if (availableBooks.length === 0) {
+    return createAbandonedSuppliesEvent();
+  }
+
+  const bookId = availableBooks[
+    Math.floor(Math.random() * availableBooks.length)
+  ];
+  const book = getMagicBook(bookId);
+
+  return {
+    id: "sealed_magic_book",
+    title: "봉인된 마법서",
+    description: "마수의 흔적 사이에서 강한 마력이 새어 나오는 봉인된 책을 발견했습니다.",
+    rewardBookId: bookId,
+    choices: [
+      {
+        id: "read_book",
+        label: "봉인을 풀고 읽는다",
+        detail: "HP 10 소모 · " + book.name + " 획득",
+      },
+      {
+        id: "leave",
+        label: "건드리지 않는다",
+        detail: "아무 일도 일어나지 않음",
+      },
+    ],
+  };
+}
+
 function createWanderingMercenaryEvent() {
   const cardId = randomClassCard();
 
@@ -211,7 +244,7 @@ function createWanderingMercenaryEvent() {
   };
 }
 
-export function createEvent() {
+export function createEvent(run) {
   const eventId = shuffle(EVENT_LIBRARY)[0];
 
   if (eventId === "beast_altar") {
@@ -220,6 +253,10 @@ export function createEvent() {
 
   if (eventId === "wandering_mercenary") {
     return createWanderingMercenaryEvent();
+  }
+
+  if (eventId === "sealed_magic_book") {
+    return createSealedMagicBookEvent(run);
   }
 
   return createAbandonedSuppliesEvent();
@@ -232,6 +269,12 @@ export function canChooseEventOption(run, event, choiceId) {
 
   if (event.id === "wandering_mercenary" && choiceId === "buy_training") {
     return run.gold >= 25;
+  }
+
+  if (event.id === "sealed_magic_book" && choiceId === "read_book") {
+    return run.hp > 10 &&
+      Boolean(event.rewardBookId) &&
+      getAvailableImplementedMagicBookIds(run).includes(event.rewardBookId);
   }
 
   return true;
@@ -276,6 +319,21 @@ export function resolveEventChoice(run, event, choiceId) {
     return {
       success: true,
       message: getCard(event.rewardCardId).name + " 획득 · 25G 지불",
+    };
+  }
+
+  if (event.id === "sealed_magic_book" && choiceId === "read_book") {
+    if (!acquireMagicBook(run, event.rewardBookId)) {
+      return {
+        success: false,
+        message: "현재 획득할 수 없는 마법서입니다.",
+      };
+    }
+
+    run.hp -= 10;
+    return {
+      success: true,
+      message: getMagicBook(event.rewardBookId).name + " 획득 · HP 10 소모",
     };
   }
 
