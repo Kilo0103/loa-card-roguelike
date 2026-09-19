@@ -14,6 +14,7 @@ import {
   BASE_MAX_ENERGY,
   getBlockGain,
   getCardCostAdjustment,
+  getIncomingDamageMultiplier,
   getMaxEnergy,
   getStartingChargeStage,
 } from "./magicBookEffects.js";
@@ -129,7 +130,10 @@ function removeImmortalStack(battle, enemy, reason) {
 
 function damagePlayer(run, battle, enemy, amount, piercing) {
   const weakness = enemy.statuses.weakness;
-  const reducedAmount = Math.max(0, amount - (weakness ? weakness.value : 0));
+  const weakenedAmount = Math.max(0, amount - (weakness ? weakness.value : 0));
+  const reducedAmount = Math.ceil(
+    weakenedAmount * getIncomingDamageMultiplier(run)
+  );
   const absorbed = piercing ? 0 : Math.min(battle.playerBlock, reducedAmount);
   const hpDamage = reducedAmount - absorbed;
 
@@ -358,8 +362,11 @@ function resolveEnemyIntent(run, battle, enemy) {
 function resolvePlayerDebuffsAtTurnEnd(run, battle) {
   const bleed = battle.playerDebuffs.bleed;
   if (bleed) {
-    run.hp = Math.max(0, run.hp - bleed.value);
-    addLog(battle, "출혈로 HP " + bleed.value + " 피해");
+    const bleedDamage = Math.ceil(
+      bleed.value * getIncomingDamageMultiplier(run)
+    );
+    run.hp = Math.max(0, run.hp - bleedDamage);
+    addLog(battle, "출혈로 HP " + bleedDamage + " 피해");
     maybeTriggerFirstAid(run, battle);
   }
 
