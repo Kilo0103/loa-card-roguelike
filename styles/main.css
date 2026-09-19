@@ -544,3 +544,30 @@ button:not(:disabled) {
     grid-template-columns: 1fr;
   }
 }
+
+.player-status-strip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 10px 14px;
+  border-radius: 12px;
+}
+
+.player-status-strip strong {
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(187, 79, 98, 0.14);
+  color: #efb2bd;
+  font-size: 11px;
+}
+
+.enemy-statuses--special span {
+  background: rgba(217, 177, 74, 0.14);
+  color: #efd98b;
+}
+
+.card--status {
+  background: linear-gradient(180deg, #2a2a2a, #151515);
+  border-style: dashed;
+}
