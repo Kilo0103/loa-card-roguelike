@@ -1425,3 +1425,213 @@ button:not(:disabled) {
     flex-direction: column;
   }
 }
+
+
+/* Esther bond */
+.bond-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-top: 12px;
+  padding: 10px 12px;
+}
+
+.bond-bar__identity {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bond-charge {
+  padding: 4px 8px;
+  border: 1px solid rgba(116, 194, 229, 0.32);
+  border-radius: 999px;
+  color: #a9ddf4;
+  background: rgba(44, 109, 139, 0.18);
+  font-size: 10px;
+}
+
+.bond-materials {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.bond-materials span {
+  padding: 4px 7px;
+  border-radius: 999px;
+  color: #d9d2bd;
+  background: rgba(255, 255, 255, 0.055);
+  font-size: 9px;
+}
+
+.bond-use-button {
+  padding: 10px 14px;
+  border: 1px solid rgba(116, 194, 229, 0.5);
+  border-radius: 12px;
+  color: #e6f7ff;
+  background: rgba(36, 105, 137, 0.74);
+}
+
+.bond-use-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.bond-workshop,
+.bond-material-shop {
+  width: min(760px, 100%);
+  margin: 18px auto 0;
+  padding: 20px;
+}
+
+.bond-workshop__heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.bond-workshop h2,
+.bond-material-shop h2 {
+  margin: 4px 0 8px;
+}
+
+.bond-workshop p {
+  color: #aeb7ca;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.bond-workshop > button {
+  width: 100%;
+  margin-top: 10px;
+  padding: 11px 16px;
+  border: 1px solid rgba(116, 194, 229, 0.35);
+  border-radius: 11px;
+  color: #fff;
+  background: rgba(44, 112, 145, 0.78);
+}
+
+.bond-workshop > button:disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+}
+
+.bond-material-shop__items {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 9px;
+  margin-top: 12px;
+}
+
+.bond-material-shop__items button {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 11px;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 10px;
+  color: #eaf7fb;
+  background: #252b38;
+  text-align: left;
+}
+
+.bond-material-shop__items span {
+  color: #9aa8b9;
+  font-size: 10px;
+}
+
+.rest-layout {
+  width: min(760px, calc(100% - 24px));
+}
+
+.rest-layout .node-panel {
+  width: 100%;
+}
+
+.bond-select-panel {
+  width: min(1050px, calc(100% - 24px));
+  padding: 28px;
+}
+
+.bond-select-panel > h1,
+.bond-select-panel > p {
+  text-align: center;
+}
+
+.bond-select-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 22px;
+}
+
+.bond-select-card {
+  min-height: 170px;
+  padding: 18px;
+  border: 1px solid rgba(116, 194, 229, 0.2);
+  border-radius: 14px;
+  color: #eaf8ff;
+  background: rgba(25, 43, 54, 0.92);
+  text-align: left;
+}
+
+.bond-select-card:hover {
+  border-color: rgba(116, 194, 229, 0.7);
+  transform: translateY(-3px);
+}
+
+.bond-select-card strong,
+.bond-select-card span {
+  display: block;
+}
+
+.bond-select-card strong {
+  font-size: 20px;
+}
+
+.bond-select-card span {
+  margin-top: 5px;
+  color: #9ac6d8;
+  font-size: 11px;
+}
+
+.bond-select-card p {
+  margin-top: 14px;
+  color: #b9c6cc;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+@media (max-width: 900px) {
+  .bond-select-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .bond-material-shop__items {
+    grid-template-columns: 1fr;
+  }
+
+  .bond-bar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .bond-materials {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 520px) {
+  .bond-select-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .bond-workshop__heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
