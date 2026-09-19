@@ -724,8 +724,8 @@ function renderPotionReward(app) {
           '<strong>' + app.run.potions.length + " / " + MAX_POTIONS + "</strong>" +
         "</div>" +
         (isFull
-          ? "<p class="reward-guidance">슬롯이 가득 찼습니다. 교체할 물약을 선택하거나 포기하세요.</p>"
-          : "<p class="reward-guidance">빈 슬롯에 바로 보관할 수 있습니다.</p>") +
+          ? '<p class="reward-guidance">슬롯이 가득 찼습니다. 교체할 물약을 선택하거나 포기하세요.</p>'
+          : '<p class="reward-guidance">빈 슬롯에 바로 보관할 수 있습니다.</p>') +
         '<div class="reward-actions">' + actions + "</div>" +
       "</section>" +
     "</main>"
