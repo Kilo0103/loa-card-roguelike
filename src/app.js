@@ -17,8 +17,10 @@ import {
   awardBattleGold,
   buyShopCard,
   buyShopMagicBook,
+  buyShopPotion,
   createEvent,
   createShop,
+  removeShopDeckCard,
   resolveEventChoice,
   restAtNode,
 } from "./game/nodes.js";
@@ -587,6 +589,28 @@ root.addEventListener("click", function handleClick(event) {
 
   if (action === "buy-shop-magic-book") {
     const result = buyShopMagicBook(app.run, app.shop);
+    app.notice = result.message;
+    render(root, app);
+    return;
+  }
+
+  if (action === "buy-shop-potion") {
+    const result = buyShopPotion(
+      app.run,
+      app.shop,
+      Number(button.dataset.itemIndex)
+    );
+    app.notice = result.message;
+    render(root, app);
+    return;
+  }
+
+  if (action === "remove-shop-card") {
+    const result = removeShopDeckCard(
+      app.run,
+      app.shop,
+      Number(button.dataset.deckIndex)
+    );
     app.notice = result.message;
     render(root, app);
     return;
