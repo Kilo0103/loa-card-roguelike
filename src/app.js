@@ -152,9 +152,9 @@ function openRewards(goldReward) {
   app.lastGoldReward = goldReward;
   app.pendingPotionDrop = rollPotionDrop(app.run, nodeType);
 
-  if (droppedBook) {
-    app.notice = droppedBook.name + " 마법서 획득";
-  }
+  app.notice = droppedBook
+    ? droppedBook.name + " 마법서가 드랍되어 획득되었습니다."
+    : "";
 
   render(root, app);
 }
@@ -182,7 +182,7 @@ function finishBattleAction() {
       app.pendingPotionDrop = null;
       app.mode = "field-clear";
       app.notice = droppedBook
-        ? droppedBook.name + " 마법서 획득"
+        ? droppedBook.name + " 마법서가 드랍되어 획득되었습니다."
         : "";
       render(root, app);
       return;
