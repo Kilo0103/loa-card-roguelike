@@ -880,16 +880,6 @@ function renderBattle(app) {
               renderBondBar(run) +
               renderMagicBookBar(run) +
             "</section>" +
-            '<section class="combat-command-bar">' +
-              '<div class="combat-command-bar__actions">' +
-                retainButton +
-                bondButton +
-                escapeButton +
-                '<button class="end-turn battle-end-turn" data-action="end-turn">' +
-                  '<span>행동 완료</span><strong>턴 종료</strong>' +
-                "</button>" +
-              "</div>" +
-            "</section>" +
             '<details class="battle-log battle-log--compact panel">' +
               "<summary>전투 로그 · 최근 " + Math.min(18, battle.log.length) + "개</summary>" +
               "<div>" +
@@ -905,6 +895,16 @@ function renderBattle(app) {
             battle.hand.map(function cardHtml(cardId, index) {
               return renderCard(run, battle, cardId, index);
             }).join("") +
+          "</section>" +
+          '<section class="combat-command-bar">' +
+            '<div class="combat-command-bar__actions">' +
+              retainButton +
+              bondButton +
+              escapeButton +
+              '<button class="end-turn battle-end-turn" data-action="end-turn">' +
+                '<span>행동 완료</span><strong>턴 종료</strong>' +
+              "</button>" +
+            "</div>" +
           "</section>" +
         "</section>" +
       "</section>" +
