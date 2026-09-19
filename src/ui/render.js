@@ -1,8 +1,9 @@
 import { getCard } from "../data/cards.js";
+import { getMagicBook } from "../data/magicBooks.js";
 import {
   getEffectiveCardCost,
   getEnemyIntent,
-  MAX_ENERGY,
+  getPlayerMaxEnergy,
 } from "../game/battle.js";
 import {
   getAllMapNodes,
@@ -49,9 +50,9 @@ function renderTags(card) {
     "</div>";
 }
 
-function renderCard(battle, cardId, index) {
+function renderCard(run, battle, cardId, index) {
   const card = getCard(cardId);
-  const cost = getEffectiveCardCost(battle, card);
+  const cost = getEffectiveCardCost(run, battle, card);
   const disabled = card.unplayable || cost > battle.energy;
   const costText = card.unplayable ? "—" : String(cost);
 
@@ -323,6 +324,7 @@ function renderMap(app) {
       "</header>" +
 
       renderNotice(app) +
+      renderMagicBookBar(run) +
 
       '<section class="map-panel panel">' +
         '<div class="map-panel__header">' +
@@ -352,6 +354,29 @@ function renderMap(app) {
   );
 }
 
+
+function renderMagicBookBar(run) {
+  if (!run.magicBooks || run.magicBooks.length === 0) {
+    return "";
+  }
+
+  return (
+    '<div class="magic-book-bar panel">' +
+      '<span class="label">마법서</span>' +
+      '<div class="magic-book-list">' +
+        run.magicBooks.map(function bookHtml(bookId) {
+          const book = getMagicBook(bookId);
+          return (
+            '<span class="magic-book-chip" title="' + book.description + '">' +
+              '<b>#' + book.number + "</b>" +
+              book.name +
+            "</span>"
+          );
+        }).join("") +
+      "</div>" +
+    "</div>"
+  );
+}
 
 function renderPotionInventory(run, battle) {
   const slots = [];
@@ -450,13 +475,14 @@ function renderBattle(app) {
         '<div><span class="label">보호막</span><strong>' +
           battle.playerBlock + "</strong></div>" +
         '<div><span class="label">코스트</span><strong>' +
-          battle.energy + " / " + MAX_ENERGY + "</strong></div>" +
+          battle.energy + " / " + getPlayerMaxEnergy(run) + "</strong></div>" +
         '<div><span class="label">골드</span><strong>' +
           run.gold + "G</strong></div>" +
         '<div><span class="label">덱</span><strong>' +
           run.deck.length + "장</strong></div>" +
       "</header>" +
 
+      renderMagicBookBar(run) +
       renderPlayerDebuffs(battle) +
       renderPotionInventory(run, battle) +
       chargeText +
